@@ -36,12 +36,15 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Enable KVM for the emulator
+      - name: Enable KVM and install emulator runtime deps
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          # emulator 37's qemu links against PulseAudio, absent from the image
+          # ("error while loading shared libraries: libpulse.so.0").
+          sudo apt-get update -qq && sudo apt-get install -y -qq libpulse0
 
       - name: Install system image and create AVD
         run: |
@@ -49,17 +52,6 @@ jobs:
           yes | "$SDKM" --licenses > /dev/null 2>&1 || true
           "$SDKM" --install "system-images;android-${{ matrix.api-level }};google_apis;x86_64" \
             > /tmp/sdkinstall.log 2>&1 || { tail -30 /tmp/sdkinstall.log; exit 1; }
-          # Pin the emulator below 37: 37.x switched to the gfxstream graphics
-          # backend, which crashes headless on these runners (observed
-          # 2026-10-30) with the API 34/35 system images. If a versioned pin is
-          # unavailable we fall back to the preinstalled one with Vulkan off.
-          if ! "$SDKM" --install "emulator;34.1.20" > /tmp/emuinstall.log 2>&1; then
-            echo "::warning::could not pin emulator 34.1.20, using preinstalled"
-            grep -m3 -a "Warning\|Error\|failed" /tmp/emuinstall.log \
-              | while IFS= read -r line; do echo "::warning::${line}"; done
-            "$SDKM" --list 2>/dev/null | grep -a "  emulator;" | head -8 \
-              | while IFS= read -r line; do echo "::warning::available:${line}"; done
-          fi
           echo "::warning::emulator in use: $("$ANDROID_HOME/emulator/emulator" -version 2>&1 | head -1)"
           echo "no" | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --force --name ci_avd \
@@ -104,7 +96,9 @@ jobs:
             sleep 5
           done
           echo "All boot attempts failed; emulator log tail as annotations:"
-          tail -40 /tmp/emulator.log | while IFS= read -r line; do
+          # Only the last few lines: GitHub caps annotations at 10 per step and
+          # the actual crash message is always at the end.
+          tail -8 /tmp/emulator.log | while IFS= read -r line; do
             echo "::error::${line}"
           done
           exit 1
