@@ -112,8 +112,9 @@ class CaptureMonitorService : Service() {
         services.analytics.logEvent("screenshot_taken_no_filter", mapOf("full_file_path_no_filter" to info.path))
 
         if (services.prefs.noDialogAutoDeleteEnabled) {
-            val seconds = services.prefs.autoDeleteDurationSeconds
-            if (DeletionDuration.isValidSeconds(seconds)) {
+            // Silent mode arms the user's first quick-delete option.
+            val seconds = services.prefs.customDurations.firstOrNull()
+            if (seconds != null && DeletionDuration.isValidSeconds(seconds)) {
                 scheduleDeletion(info.id, info.path, seconds)
                 return
             }
@@ -123,17 +124,17 @@ class CaptureMonitorService : Service() {
         // launching an Activity from the background is silently blocked on
         // modern Android (verified on Android 16) even with
         // SYSTEM_ALERT_WINDOW granted.
-        val defaultSeconds = services.prefs.autoDeleteDurationSeconds
+        val chips = services.prefs.customDurations
         val shown = CaptureOverlayWindows.show(
             context = this,
             screenshotId = info.id,
             displayName = info.displayName,
-            defaultSeconds = defaultSeconds
+            quickOptions = chips
         )
         if (!shown) {
             // No overlay permission (or the window was rejected): fall back to
             // a heads-up notification with direct actions.
-            CaptureNotificationFallback.show(this, info.id, info.displayName, defaultSeconds)
+            CaptureNotificationFallback.show(this, info.id, info.displayName, chips.firstOrNull())
         }
     }
 

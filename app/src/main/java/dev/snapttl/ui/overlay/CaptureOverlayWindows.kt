@@ -65,7 +65,7 @@ object CaptureOverlayWindows {
         context: Context,
         screenshotId: Long,
         displayName: String,
-        defaultSeconds: Long
+        quickOptions: List<Long>
     ): Boolean {
         if (!android.provider.Settings.canDrawOverlays(context)) return false
         dismiss()
@@ -85,7 +85,7 @@ object CaptureOverlayWindows {
                     CaptureOverlay(
                         screenshotId = screenshotId,
                         displayName = displayName,
-                        defaultSeconds = defaultSeconds,
+                        quickOptions = quickOptions,
                         onDismiss = { dismiss() }
                     )
                 }

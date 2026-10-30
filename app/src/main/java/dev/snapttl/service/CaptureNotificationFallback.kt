@@ -19,7 +19,7 @@ object CaptureNotificationFallback {
 
     private const val EXTRA_SCREENSHOT_ID = "snapttl_screenshot_id"
 
-    fun show(context: Context, screenshotId: Long, displayName: String, defaultSeconds: Long) {
+    fun show(context: Context, screenshotId: Long, displayName: String, defaultSeconds: Long?) {
         val manager = NotificationManagerCompat.from(context)
         val id = notificationId(screenshotId)
 
@@ -88,8 +88,9 @@ object CaptureNotificationFallback {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-    private fun sanitize(seconds: Long): Long =
-        if (DeletionDuration.isValidSeconds(seconds)) seconds else DeletionDuration.DEFAULT_SECONDS
+    private fun sanitize(seconds: Long?): Long =
+        if (seconds != null && DeletionDuration.isValidSeconds(seconds)) seconds
+        else DeletionDuration.DEFAULT_CHIPS.first()
 
     private fun notificationId(screenshotId: Long): Int = (screenshotId and 0x7FFFFFFF).toInt()
 }

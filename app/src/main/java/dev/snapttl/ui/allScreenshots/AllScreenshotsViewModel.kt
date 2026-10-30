@@ -16,7 +16,7 @@ data class AllScreenshotsUiState(
     val items: List<ScreenshotMedia> = emptyList(),
     val scheduledIds: Set<Long> = emptySet(),
     val selected: Set<Long> = emptySet(),
-    val defaultDurationSeconds: Long = DeletionDuration.DEFAULT_SECONDS
+    val customDurations: List<Long> = emptyList()
 )
 
 class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
@@ -38,7 +38,7 @@ class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
             _uiState.update {
                 it.copy(
                     items = services.screenshotRepo.queryScreenshots(),
-                    defaultDurationSeconds = services.prefs.autoDeleteDurationSeconds
+                    customDurations = services.prefs.customDurations
                 )
             }
         }

@@ -76,22 +76,26 @@
     <string name="extra_silent_auto_delete">Silent auto-delete</string>
     <string name="extra_silent_desc">Skip the floating timer and arm the default timer the moment a screenshot is taken.</string>
 
-    <string name="duration_default_title">Default delete timer</string>
-    <string name="duration_default_desc">Starting point for the floating timer and the duration used by silent auto-delete and bulk actions. Up to 7 days.</string>
-    <string name="duration_picker_value">Delete after %1$s</string>
     <string name="duration_hours">Hours</string>
     <string name="duration_minutes">Minutes</string>
     <string name="duration_seconds">Seconds</string>
     <string name="duration_days">Days</string>
     <string name="duration_preview">Deletes in %1$s</string>
     <string name="duration_schedule">Schedule delete</string>
+    <string name="duration_custom">Custom…</string>
+    <string name="duration_picker_title">Set a custom timer (up to 7 days).</string>
+    <string name="duration_back_to_options">Back</string>
+    <string name="duration_add">Add duration</string>
+    <string name="duration_edit">Edit duration</string>
+    <string name="duration_remove">Remove</string>
+
+    <string name="durations_card_title">Quick delete durations</string>
+    <string name="durations_card_desc">Your one-tap options on the floating timer. Tap to edit, × to remove. Silent auto-delete and bulk delete use the first one.</string>
     <string name="duration_set">Set</string>
     <string name="duration_cancel">Cancel</string>
     <string name="duration_pick_datetime">Pick a date &amp; time instead</string>
     <string name="duration_pick_datetime_title">Delete at a specific date and time (up to a year ahead).</string>
-    <string name="duration_back_to_timer">Back to timer</string>
     <string name="duration_target_preview">Deletes on %1$s</string>
-    <string name="duration_invalid">Pick a duration up to 7 days.</string>
 
     <string name="screenshots_pick_time">Pick time…</string>
     <string name="screenshots_delete_in">Delete in %1$s</string>

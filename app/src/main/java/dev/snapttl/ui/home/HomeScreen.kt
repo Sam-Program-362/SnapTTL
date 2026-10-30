@@ -48,11 +48,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import dev.snapttl.R
-import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.domain.TimeUtils
 import dev.snapttl.ui.LocalSnapTtlFactory
-import dev.snapttl.ui.common.DurationPickerDialog
 import dev.snapttl.ui.common.Permissions
+import dev.snapttl.ui.common.QuickDurationsCard
 
 @Composable
 fun HomeScreen(
@@ -69,19 +68,6 @@ fun HomeScreen(
     val runtimeRequest = remember { Permissions.runtimeRequestList() }
 
     var easterEggTaps by remember { mutableIntStateOf(0) }
-    var showDurationPicker by remember { mutableStateOf(false) }
-
-    if (showDurationPicker) {
-        DurationPickerDialog(
-            title = stringResource(R.string.duration_default_title),
-            initialSeconds = state.defaultDurationSeconds,
-            onDismiss = { showDurationPicker = false },
-            onConfirm = { seconds ->
-                showDurationPicker = false
-                viewModel.setDefaultDuration(seconds)
-            }
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -159,13 +145,11 @@ fun HomeScreen(
             Spacer(Modifier.height(12.dp))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(stringResource(R.string.duration_default_title), style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(R.string.duration_default_desc), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = { showDurationPicker = true }) {
-                        Text(stringResource(R.string.duration_picker_value, DeletionDuration.detailedLabel(state.defaultDurationSeconds)))
-                    }
+                    QuickDurationsCard(
+                        durations = state.customDurations,
+                        onUpsert = viewModel::upsertDuration,
+                        onRemove = viewModel::removeDuration
+                    )
                 }
             }
 

@@ -56,35 +56,40 @@ import dev.snapttl.ui.common.Stepper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Overlay interaction mode: quick timer vs explicit date/time. */
-private enum class OverlayMode { TIMER, DATETIME }
+/** Overlay interaction mode: one-tap options, free-form timer, or date/time. */
+private enum class OverlayMode { OPTIONS, TIMER, DATETIME }
 
 /**
- * Floating delete-timer card shown over other apps. The user picks any
- * duration (up to a week) with the stepper; longer retention is reachable
- * through the quieter "pick a date & time" affordance. Once armed, the card
- * shows a live countdown.
+ * Floating delete-timer card shown over other apps.
+ *
+ * - OPTIONS (default): the user's own quick-delete durations as one-tap buttons,
+ *   plus a "Custom…" button that opens the free-form timer and a quieter
+ *   "pick a date & time" affordance for anything past a week.
+ * - TIMER: hours/minutes/seconds stepper (1 s … 7 d).
+ * - DATETIME: days/hours/minutes with an absolute-date preview (≤ 1 year).
+ * Once armed, the card shows a live countdown.
  */
 @Composable
 fun CaptureOverlay(
     screenshotId: Long,
     displayName: String,
-    defaultSeconds: Long,
+    quickOptions: List<Long>,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val services = (context.applicationContext as SnapTtlApp).services
     val scope = rememberCoroutineScope()
 
-    var mode by remember { mutableStateOf(OverlayMode.TIMER) }
+    var mode by remember { mutableStateOf(OverlayMode.OPTIONS) }
 
-    // Quick-timer stepper state, seeded from the user's default.
-    var hours by remember { mutableStateOf((defaultSeconds / DeletionDuration.SECONDS_PER_HOUR).toInt()) }
+    // Free-form timer stepper state, seeded from the first quick option.
+    val seed = quickOptions.firstOrNull() ?: DeletionDuration.DEFAULT_CHIPS.first()
+    var hours by remember { mutableStateOf((seed / DeletionDuration.SECONDS_PER_HOUR).toInt()) }
     var minutes by remember {
-        mutableStateOf(((defaultSeconds % DeletionDuration.SECONDS_PER_HOUR) / DeletionDuration.SECONDS_PER_MINUTE).toInt())
+        mutableStateOf(((seed % DeletionDuration.SECONDS_PER_HOUR) / DeletionDuration.SECONDS_PER_MINUTE).toInt())
     }
     var seconds by remember {
-        mutableStateOf((defaultSeconds % DeletionDuration.SECONDS_PER_MINUTE).toInt())
+        mutableStateOf((seed % DeletionDuration.SECONDS_PER_MINUTE).toInt())
     }
 
     // Date/time stepper state (days from now + wall-clock time of day).
@@ -184,9 +189,55 @@ fun CaptureOverlay(
                         strokeWidth = 2.dp
                     )
                 }
-            } else if (mode == OverlayMode.TIMER) {
+            } else if (mode == OverlayMode.OPTIONS) {
                 Text(
                     text = stringResource(R.string.overlay_choose),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // The user's own one-tap options, three per row.
+                quickOptions.chunked(3).forEach { rowOptions ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        rowOptions.forEach { option ->
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        services.expiryRepo.scheduleIn(
+                                            screenshotId = screenshotId,
+                                            durationSeconds = option
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text(DeletionDuration.label(option)) }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                Button(
+                    onClick = { mode = OverlayMode.TIMER },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Schedule, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.duration_custom))
+                }
+                TextButton(
+                    onClick = { mode = OverlayMode.DATETIME },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Event, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.duration_pick_datetime), style = MaterialTheme.typography.labelSmall)
+                }
+            } else if (mode == OverlayMode.TIMER) {
+                Text(
+                    text = stringResource(R.string.duration_picker_title),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(Modifier.height(8.dp))
@@ -289,10 +340,10 @@ fun CaptureOverlay(
                     Text(stringResource(R.string.duration_schedule))
                 }
                 TextButton(
-                    onClick = { mode = OverlayMode.TIMER },
+                    onClick = { mode = OverlayMode.OPTIONS },
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text(stringResource(R.string.duration_back_to_timer), style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.duration_back_to_options), style = MaterialTheme.typography.labelSmall)
                 }
             }
 

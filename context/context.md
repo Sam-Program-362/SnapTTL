@@ -16,11 +16,18 @@ Three directives, all implemented this session:
 1. **Freemium removed** — SnapTTL is a free app. `EntitlementState`, premium /
    ads-removed / refill prefs, gating UI in Home/Settings/All-Screenshots and the
    subscriptions card are gone. Silent auto-delete is available to everyone.
-2. **Durations are user-set, not pre-installed** — the floating overlay and the
-   in-app pickers use an h/m/s stepper (1 s … 7 days). The overlay additionally
-   carries a *subtle* "Pick a date & time instead" affordance (days/hours/minutes
-   with an absolute-date preview, up to a year ahead) — the only way past a week.
-   Single default timer stored in `auto_delete_duration_seconds` (default 15 min).
+2. **Durations are user-set quick options, not pre-installed** — the user
+   maintains their **own one-tap options** (up to six, each 1 s … 7 days;
+   starters 15 m / 1 h / 6 h / 1 d, fully editable via tap-to-edit, × to
+   remove, "Add duration" to add — Home and Settings both host the manager).
+   The floating overlay shows those options as one-tap buttons, plus a
+   **"Custom…"** button opening a free-form h/m/s timer, plus the subtle
+   **"Pick a date & time instead"** affordance (days/hours/minutes with an
+   absolute-date preview, up to a year ahead) — the only way past a week.
+   Stored in `custom_durations_seconds` (comma-separated seconds). Silent
+   auto-delete and bulk delete use the **first** option. (Feedback round 3
+   clarified the design: options-first with custom/date-time behind buttons,
+   not a bare stepper on the popup.)
 3. **Popup didn't appear on Android 16** — root cause: the overlay was an *Activity*
    launched from the background; blocked background-activity launches fail
    **silently** (Android 10+ BAL rules, narrowed further on 15/16) even with
