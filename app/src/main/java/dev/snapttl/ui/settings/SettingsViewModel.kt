@@ -124,7 +124,7 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
     private fun refillDaysLeft(): Int {
         val expiry = services.prefs.refillExpiryEpochMs
         if (expiry <= 0L) return 0
-        return ((expiry - System.currentTimeMillis()) / 86_400_000L).coerceIn(0, 40)
+        return ((expiry - System.currentTimeMillis()) / 86_400_000L).coerceIn(0L, 40L).toInt()
     }
 
     private fun versionName(context: Context): String {

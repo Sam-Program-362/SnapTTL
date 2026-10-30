@@ -34,11 +34,14 @@ jobs:
       - name: Resolve dependencies (ML Kit diagnostic)
         run: |
           ./gradlew :app:dependencies --configuration debugCompileClasspath --no-daemon --console=plain > /tmp/deps.log 2>&1 || true
-          grep -iE "mlkit" /tmp/deps.log | head -40 | while IFS= read -r line; do
-            echo "::error::$line"
+          grep -iE "mlkit|Could not|FAILED" /tmp/deps.log | head -60 | while IFS= read -r line; do
+            echo "::notice::$line"
           done
-          find "$HOME/.gradle/caches" -iname "*image-labeling*" 2>/dev/null | head -20 | while IFS= read -r line; do
-            echo "::error::$line"
+          for aar in $(find "$HOME/.gradle/caches" \( -iname "*text-recognition*.aar" -o -iname "*image-labeling*.aar" \) 2>/dev/null | head -4); do
+            echo "::notice::AAR=$aar"
+            unzip -p "$aar" classes.jar > /tmp/c.jar 2>/dev/null && unzip -l /tmp/c.jar 2>/dev/null | grep -iE "Options|Recognition|Labeling|Recognizer" | head -40 | while IFS= read -r l; do
+              echo "::notice::$l"
+            done
           done
 
       - name: Unit tests
