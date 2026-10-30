@@ -93,14 +93,18 @@ object CaptureOverlayWindows {
         }
 
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            // Bottom-centre: near the thumb, out of the way of the content the
+            // user just captured, and never blocking the status bar area the
+            // system shades on Android 15/16.
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = dpToPx(view.context, 8)
         }
 
         return try {
@@ -122,4 +126,7 @@ object CaptureOverlayWindows {
         runCatching { active.owner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY) }
         runCatching { active.windowManager.removeView(active.view) }
     }
+
+    private fun dpToPx(context: Context, dp: Int): Int =
+        (dp * context.resources.displayMetrics.density).toInt().coerceAtLeast(0)
 }
