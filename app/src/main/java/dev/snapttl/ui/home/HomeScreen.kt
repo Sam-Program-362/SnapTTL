@@ -101,7 +101,7 @@ fun HomeScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Deleted %1$d · Saved %2$s".format(state.totalDeleted, TimeUtils.formatFileSize(state.totalSaved)),
+                        "Deleted %d · Saved %s".format(state.totalDeleted, TimeUtils.formatFileSize(state.totalSaved)),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

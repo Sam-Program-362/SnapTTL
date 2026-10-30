@@ -60,7 +60,7 @@ class HomeViewModel(private val services: Services) : ViewModel() {
     }
 
     fun openOverlaySettings() {
-        val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSIONS)
+        val intent = android.content.Intent("android.settings.action.MANAGE_OVERLAY_PERMISSION")
             .setData(android.net.Uri.parse("package:" + services.context.packageName))
             .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         services.context.startActivity(intent)
@@ -69,6 +69,6 @@ class HomeViewModel(private val services: Services) : ViewModel() {
     private fun refillDaysLeft(): Int {
         val expiry = services.prefs.refillExpiryEpochMs
         if (expiry <= 0L) return 0
-        return ((expiry - System.currentTimeMillis()) / 86_400_000L).coerceIn(0, 40)
+        return ((expiry - System.currentTimeMillis()) / 86_400_000L).coerceIn(0L, 40L).toInt()
     }
 }

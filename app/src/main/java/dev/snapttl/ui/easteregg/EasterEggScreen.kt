@@ -1,5 +1,6 @@
 package dev.snapttl.ui.easteregg
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,19 +85,18 @@ fun EasterEggScreen(onBack: () -> Unit) {
                                     modifier = Modifier
                                         .padding(4.dp)
                                         .size(64.dp)
+                                        .background(
+                                            if (index == active) Color(0xFFFF4500)
+                                            else MaterialTheme.colorScheme.surfaceVariant,
+                                            RoundedCornerShape(12.dp)
+                                        )
                                         .clickable {
                                             if (index == active) {
                                                 score++
                                                 active = null
                                             }
                                         }
-                                ) {
-                                    Surface(
-                                        color = if (index == active) Color(0xFFFF4500)
-                                        else MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                }
+                                )
                             }
                         }
                     }

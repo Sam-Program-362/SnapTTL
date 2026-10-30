@@ -35,9 +35,11 @@ class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
     }
 
     fun refresh() {
-        _uiState.value = _uiState.value.copy(
-            items = services.screenshotRepo.queryScreenshots()
-        )
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                items = services.screenshotRepo.queryScreenshots()
+            )
+        }
     }
 
     fun toggleSelected(id: Long) {

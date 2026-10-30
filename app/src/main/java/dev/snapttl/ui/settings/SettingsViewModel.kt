@@ -101,7 +101,7 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
     fun openAutoStart() {
         val component = resolveAutoStart() ?: return
         val intent = Intent().apply {
-            componentName = ComponentName(component.packageName, component.activityClass)
+            component = ComponentName(component.packageName, component.activityClass)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         services.context.startActivity(intent)

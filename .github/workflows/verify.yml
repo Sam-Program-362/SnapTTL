@@ -31,6 +31,16 @@ jobs:
       - name: Clean-room core tests (Python mirror)
         run: python3 -m unittest discover -s tools -p 'clean_room_core_tests.py' -v
 
+      - name: Resolve dependencies (ML Kit diagnostic)
+        run: |
+          ./gradlew :app:dependencies --configuration debugCompileClasspath --no-daemon --console=plain > /tmp/deps.log 2>&1 || true
+          grep -iE "mlkit" /tmp/deps.log | head -40 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
+          find "$HOME/.gradle/caches" -iname "*image-labeling*" 2>/dev/null | head -20 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
+
       - name: Unit tests
         run: |
           set +e
