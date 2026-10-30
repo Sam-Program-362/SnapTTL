@@ -3,6 +3,7 @@ package dev.snapttl.service
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import dev.snapttl.R
@@ -56,9 +57,20 @@ object CaptureNotificationFallback {
             .addAction(0, context.getString(R.string.notif_action_keep), keep)
             .build()
 
-        // POST_NOTIFICATIONS may be revoked on 13+; a missing notification is
-        // strictly better than crashing the monitor.
-        runCatching { manager.notify(id, notification) }
+        // POST_NOTIFICATIONS may be revoked on 13+; if neither the overlay nor
+        // the notification can show, at least toast the way out.
+        val canNotify = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, dev.snapttl.ui.common.Permissions.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (canNotify) {
+            runCatching { manager.notify(id, notification) }
+        } else {
+            ToastHelper.show(
+                context,
+                context.getString(R.string.overlay_no_permission_toast)
+            )
+        }
     }
 
     fun cancel(context: Context, screenshotId: Long) {

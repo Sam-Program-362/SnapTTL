@@ -102,6 +102,7 @@
     <string name="notif_fallback_text">Decide what to do with %1$s</string>
     <string name="notif_action_delete_now">Delete now</string>
     <string name="notif_action_keep">Keep</string>
+    <string name="overlay_no_permission_toast">Screenshot captured — grant “Display over other apps” or notifications to get the delete timer.</string>
 
     <string name="overlay_new_screenshot">New screenshot</string>
     <string name="overlay_choose">Choose how long to keep it, or delete it right away.</string>
