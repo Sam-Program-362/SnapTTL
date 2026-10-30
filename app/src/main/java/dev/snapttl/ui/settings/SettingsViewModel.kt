@@ -10,9 +10,8 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.snapttl.di.Services
-import dev.snapttl.domain.EntitlementState
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.domain.OemAutoStart
-import dev.snapttl.domain.TimeChips
 import dev.snapttl.language.AppLanguage
 import dev.snapttl.service.CaptureMonitorService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,16 +23,13 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val serviceEnabled: Boolean = true,
     val languageCode: String = "system",
-    val premiumPurchased: Boolean = false,
-    val adsRemoved: Boolean = false,
-    val refillDaysLeft: Int = 0,
     val silentAutoDelete: Boolean = false,
     val autoStartResolved: Boolean = false,
     val versionName: String = "",
     val overlayPermissionGranted: Boolean = false,
     val screenshotFolderTreeUri: String? = null,
     val ocrIndexEnabled: Boolean = true,
-    val armedChips: List<Long> = emptyList()
+    val defaultDurationSeconds: Long = DeletionDuration.DEFAULT_SECONDS
 )
 
 class SettingsViewModel(private val services: Services) : ViewModel() {
@@ -54,16 +50,13 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
             SettingsUiState(
                 serviceEnabled = services.prefs.serviceEnabled,
                 languageCode = services.prefs.languageCode,
-                premiumPurchased = services.prefs.havePremiumPurchased,
-                adsRemoved = services.prefs.haveAdsRemoved,
-                refillDaysLeft = entitlement().refillDaysLeft(System.currentTimeMillis()),
                 silentAutoDelete = services.prefs.noDialogAutoDeleteEnabled,
                 autoStartResolved = resolveAutoStart() != null,
                 versionName = versionName(context),
                 overlayPermissionGranted = Settings.canDrawOverlays(context),
                 screenshotFolderTreeUri = services.prefs.screenshotFolderTreeUri,
                 ocrIndexEnabled = services.prefs.ocrIndexEnabled,
-                armedChips = services.prefs.timeChips
+                defaultDurationSeconds = services.prefs.autoDeleteDurationSeconds
             )
         }
     }
@@ -79,39 +72,21 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
     }
 
     fun setSilentAutoDelete(enabled: Boolean) {
-        // Silent auto-delete is a one-time-premium feature (same rule as Mark).
-        if (enabled && !services.prefs.havePremiumPurchased) return
         services.prefs.noDialogAutoDeleteEnabled = enabled
         services.commonState.update { it.copy(noDialogAutoDelete = enabled) }
         refresh()
     }
 
+    /** Sets the default deletion timer (used by silent auto-delete + overlay start). */
+    fun setDefaultDuration(seconds: Long) {
+        if (!DeletionDuration.isValidSeconds(seconds)) return
+        services.prefs.autoDeleteDurationSeconds = seconds
+        services.commonState.update { it.copy(autoDeleteDurationSeconds = seconds) }
+        refresh()
+    }
+
     fun setOcrIndexEnabled(enabled: Boolean) {
         services.prefs.ocrIndexEnabled = enabled
-        refresh()
-    }
-
-    fun buyPremium() {
-        services.prefs.havePremiumPurchased = true
-        services.commonState.update { it.copy(premiumPurchased = true) }
-        services.analytics.logEvent("premium_click")
-        refresh()
-    }
-
-    fun removeAds() {
-        services.prefs.haveAdsRemoved = true
-        services.commonState.update { it.copy(adsRemoved = true) }
-        services.analytics.logEvent("remove_ads_click")
-        refresh()
-    }
-
-    fun applyRewardedRefill() {
-        val now = System.currentTimeMillis()
-        val state = entitlement()
-        state.applyRewardedAdRefill(now)
-        services.prefs.refillExpiryEpochMs = state.refillExpiryEpochMs
-        services.commonState.update { it.copy(refillDaysLeft = state.refillDaysLeft(now)) }
-        services.analytics.logEvent("rewarded_ad_refill")
         refresh()
     }
 
@@ -143,24 +118,6 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
             // already released
         }
         services.prefs.screenshotFolderTreeUri = null
-        refresh()
-    }
-
-    /** Arms/disarms an advanced duration chip (premium/refill gated, mirrors Home). */
-    fun toggleChip(seconds: Long) {
-        val entitlement = entitlement()
-        val now = System.currentTimeMillis()
-        val allowed = TimeChips.allowed(entitlement.hasUnlockedFeatures(now))
-        if (seconds !in allowed) return
-        val current = services.prefs.timeChips.toMutableList()
-        if (seconds in current) {
-            if (current.size > 1) current.remove(seconds)
-        } else {
-            current.add(seconds)
-        }
-        val next = current.sorted()
-        services.prefs.timeChips = next
-        services.commonState.update { it.copy(timeChips = next) }
         refresh()
     }
 
@@ -196,12 +153,6 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
         if (enabled) CaptureMonitorService.start(services.context) else CaptureMonitorService.stop(services.context)
         refresh()
     }
-
-    private fun entitlement() = EntitlementState(
-        premiumPurchased = services.prefs.havePremiumPurchased,
-        adsRemoved = services.prefs.haveAdsRemoved,
-        refillExpiryEpochMs = services.prefs.refillExpiryEpochMs
-    )
 
     private fun versionName(context: Context): String {
         return try {

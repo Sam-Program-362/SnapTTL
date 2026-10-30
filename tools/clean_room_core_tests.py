@@ -3,8 +3,8 @@
 Clean-room core logic verification for SnapTTL.
 
 Mirrors the Kotlin domain layer in app/src/main/java/dev/snapttl/domain so the core
-mechanics (screenshot filtering, freemium/refill/premium entitlement, OCR/label search,
-OEM auto-start routing, mini-game ranks) can be verified without a JVM. The Kotlin
+mechanics (screenshot filtering, deletion-duration rules, OCR/label search, OEM
+auto-start routing, mini-game ranks) can be verified without a JVM. The Kotlin
 equivalents have the same JUnit suites under app/src/test.
 
 Run:  python3 -m unittest tools.clean_room_core_tests -v
@@ -42,84 +42,64 @@ def is_valid_screenshot_event(uri: str, display_name: str, file_path: str) -> bo
     return True
 
 
-# ---------------------------------------------------------------- entitlement
-class TimeUnit:
-    MINUTES = "Minutes"
-    HOURS = "Hours"
-    DAYS = "Days"
-    NONE = "NoTime"
+# ---------------------------------------------------------------- deletion duration
+SECONDS_PER_MINUTE = 60
+SECONDS_PER_HOUR = 3_600
+SECONDS_PER_DAY = 86_400
+
+MAX_SECONDS = 7 * SECONDS_PER_DAY            # quick-timer cap: one week
+MAX_TARGET_AHEAD_DAYS = 365                  # date/time targets: at most a year out
+DEFAULT_SECONDS = 15 * SECONDS_PER_MINUTE
 
 
-@dataclass
-class EntitlementState:
-    premium_purchased: bool = False
-    ads_removed: bool = False
-    refill_expiry_epoch_ms: int = 0
-
-    DAY_MS = 24 * 60 * 60 * 1000
-    REFILL_MAX_DAYS = 40
-    REFILL_GRANT_DAYS = 20
-    FREE_MIN_MINUTES = 15
-    FREE_MAX_MINUTES = 45
-    FREE_TIME_CHIPS = [15, 45]
-
-    def refill_days_left(self, now_ms: int) -> int:
-        if self.refill_expiry_epoch_ms <= now_ms:
-            return 0
-        return max(0, min(self.REFILL_MAX_DAYS, (self.refill_expiry_epoch_ms - now_ms) // self.DAY_MS))
-
-    def has_unlocked_features(self, now_ms: int) -> bool:
-        return self.premium_purchased or self.refill_days_left(now_ms) > 0
-
-    def apply_rewarded_ad_refill(self, now_ms: int) -> int:
-        base = max(now_ms, self.refill_expiry_epoch_ms)
-        self.refill_expiry_epoch_ms = min(
-            now_ms + self.REFILL_MAX_DAYS * self.DAY_MS,
-            base + self.REFILL_GRANT_DAYS * self.DAY_MS,
-        )
-        return self.refill_days_left(now_ms)
-
-    def is_valid_deletion_schedule_seconds(self, seconds: int, now_ms: int) -> bool:
-        if seconds <= 0:
-            return False
-        if self.has_unlocked_features(now_ms):
-            return True
-        return self.FREE_MIN_MINUTES * 60 <= seconds <= self.FREE_MAX_MINUTES * 60
-
-    def is_valid_deletion_schedule(self, value: int, unit: str, now_ms: int) -> bool:
-        if value <= 0 or unit == TimeUnit.NONE:
-            return False
-        if self.has_unlocked_features(now_ms):
-            return True
-        return unit == TimeUnit.MINUTES and self.FREE_MIN_MINUTES <= value <= self.FREE_MAX_MINUTES
+def is_valid_seconds(seconds: int) -> bool:
+    """Mirror of DeletionDuration.isValidSeconds (1 s .. 7 d, for everyone)."""
+    return 1 <= seconds <= MAX_SECONDS
 
 
-# ---------------------------------------------------------------- time chips
-FREE_CHIPS = [15 * 60, 45 * 60]                      # seconds
-ADVANCED_CHIPS = [30, 5 * 60, 30 * 60, 3 * 86_400]   # 30s, 5m, 30m, 3d
+def is_valid_target_epoch_ms(target_epoch_ms: int, now_epoch_ms: int) -> bool:
+    """Mirror of DeletionDuration.isValidTargetEpochMs (future, under a year)."""
+    if target_epoch_ms <= now_epoch_ms:
+        return False
+    return target_epoch_ms - now_epoch_ms <= MAX_TARGET_AHEAD_DAYS * SECONDS_PER_DAY * 1000
 
 
-def allowed_chips(unlocked: bool) -> List[int]:
-    return list(FREE_CHIPS + ADVANCED_CHIPS) if unlocked else list(FREE_CHIPS)
-
-
-def chip_label(seconds: int) -> str:
-    if seconds >= 86_400 and seconds % 86_400 == 0:
-        return f"{seconds // 86_400}d"
-    if seconds >= 3_600 and seconds % 3_600 == 0:
-        return f"{seconds // 3_600}h"
-    if seconds >= 60 and seconds % 60 == 0:
-        return f"{seconds // 60}m"
+def duration_label(seconds: int) -> str:
+    if seconds >= SECONDS_PER_DAY and seconds % SECONDS_PER_DAY == 0:
+        return f"{seconds // SECONDS_PER_DAY}d"
+    if seconds >= SECONDS_PER_HOUR and seconds % SECONDS_PER_HOUR == 0:
+        return f"{seconds // SECONDS_PER_HOUR}h"
+    if seconds >= SECONDS_PER_MINUTE and seconds % SECONDS_PER_MINUTE == 0:
+        return f"{seconds // SECONDS_PER_MINUTE}m"
     return f"{seconds}s"
 
 
-def is_valid_deletion_schedule_seconds(seconds: int, entitlement, now: int) -> bool:
-    """Mirror of EntitlementState.isValidDeletionScheduleSeconds."""
-    if seconds <= 0:
-        return False
-    if entitlement.has_unlocked_features(now):
-        return True
-    return 15 * 60 <= seconds <= 45 * 60
+def detailed_label(seconds: int) -> str:
+    rest = max(0, seconds)
+    days, rest = divmod(rest, SECONDS_PER_DAY)
+    hours, rest = divmod(rest, SECONDS_PER_HOUR)
+    minutes, secs = divmod(rest, SECONDS_PER_MINUTE)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if secs or not parts:
+        parts.append(f"{secs}s")
+    return " ".join(parts)
+
+
+def unit_and_value(seconds: int) -> Tuple[int, str]:
+    """Mirror of DeletionDuration.unitAndValue (largest exact unit)."""
+    if seconds >= SECONDS_PER_DAY and seconds % SECONDS_PER_DAY == 0:
+        return seconds // SECONDS_PER_DAY, "DAYS"
+    if seconds >= SECONDS_PER_HOUR and seconds % SECONDS_PER_HOUR == 0:
+        return seconds // SECONDS_PER_HOUR, "HOURS"
+    if seconds >= SECONDS_PER_MINUTE and seconds % SECONDS_PER_MINUTE == 0:
+        return seconds // SECONDS_PER_MINUTE, "MINUTES"
+    return seconds, "SECONDS"
 
 
 # ---------------------------------------------------------------- OCR/label search
@@ -245,50 +225,45 @@ class CleanRoomCoreTests(unittest.TestCase):
             "/storage/emulated/0/Pictures/Screenshots/.trashed_Screenshot.png",
         ))
 
-    def test_freemium_bounds_15_to_45_minutes(self):
-        s = EntitlementState()
-        now = 1_700_000_000_000
-        self.assertTrue(s.is_valid_deletion_schedule(15, TimeUnit.MINUTES, now))
-        self.assertTrue(s.is_valid_deletion_schedule(45, TimeUnit.MINUTES, now))
-        self.assertFalse(s.is_valid_deletion_schedule(14, TimeUnit.MINUTES, now))
-        self.assertFalse(s.is_valid_deletion_schedule(46, TimeUnit.MINUTES, now))
+    def test_quick_timer_accepts_1s_to_7d(self):
+        self.assertTrue(is_valid_seconds(1))
+        self.assertTrue(is_valid_seconds(30))
+        self.assertTrue(is_valid_seconds(900))
+        self.assertTrue(is_valid_seconds(MAX_SECONDS))
 
-    def test_rewarded_refill_grants_20_days_capped_at_40(self):
-        s = EntitlementState()
-        now = 1_700_000_000_000
-        self.assertEqual(s.apply_rewarded_ad_refill(now), 20)
-        self.assertEqual(s.apply_rewarded_ad_refill(now), 40)
-        self.assertEqual(s.apply_rewarded_ad_refill(now), 40)
+    def test_quick_timer_rejects_zero_and_beyond_a_week(self):
+        self.assertFalse(is_valid_seconds(0))
+        self.assertFalse(is_valid_seconds(-60))
+        self.assertFalse(is_valid_seconds(MAX_SECONDS + 1))
 
-    def test_premium_unlocks_everything(self):
-        s = EntitlementState(premium_purchased=True)
-        now = 1_700_000_000_000
-        self.assertTrue(s.is_valid_deletion_schedule(1, TimeUnit.DAYS, now))
+    def test_datetime_target_must_be_future_within_a_year(self):
+        now = 1_800_000_000_000
+        self.assertTrue(is_valid_target_epoch_ms(now + 1, now))
+        self.assertTrue(is_valid_target_epoch_ms(now + 365 * 86_400_000, now))
+        self.assertFalse(is_valid_target_epoch_ms(now, now))
+        self.assertFalse(is_valid_target_epoch_ms(now - 1, now))
+        self.assertFalse(is_valid_target_epoch_ms(now + 366 * 86_400_000, now))
+        self.assertFalse(is_valid_target_epoch_ms(now + 400 * 86_400_000, now))
 
-    def test_time_chips(self):
-        self.assertEqual(FREE_CHIPS, [900, 2700])
-        self.assertEqual(ADVANCED_CHIPS, [30, 300, 1800, 259_200])
-        self.assertEqual(allowed_chips(False), [900, 2700])
-        self.assertEqual(len(allowed_chips(True)), 6)
-        self.assertEqual(chip_label(30), "30s")
-        self.assertEqual(chip_label(900), "15m")
-        self.assertEqual(chip_label(7_200), "2h")
-        self.assertEqual(chip_label(259_200), "3d")
+    def test_duration_labels(self):
+        self.assertEqual(duration_label(30), "30s")
+        self.assertEqual(duration_label(900), "15m")
+        self.assertEqual(duration_label(7_200), "2h")
+        self.assertEqual(duration_label(259_200), "3d")
+        self.assertEqual(duration_label(MAX_SECONDS), "7d")
 
-    def test_free_tier_seconds_validation(self):
-        s = EntitlementState()
-        now = 1_700_000_000_000
-        self.assertTrue(s.is_valid_deletion_schedule_seconds(900, now))
-        self.assertTrue(s.is_valid_deletion_schedule_seconds(2_700, now))
-        self.assertFalse(s.is_valid_deletion_schedule_seconds(899, now))
-        self.assertFalse(s.is_valid_deletion_schedule_seconds(30, now))
-        self.assertFalse(s.is_valid_deletion_schedule_seconds(259_200, now))
+    def test_detailed_labels(self):
+        self.assertEqual(detailed_label(45), "45s")
+        self.assertEqual(detailed_label(5_400), "1h 30m")
+        self.assertEqual(detailed_label(2 * 86_400 + 4 * 3_600 + 1_800), "2d 4h 30m")
+        self.assertEqual(detailed_label(0), "0s")
 
-    def test_unlocked_seconds_validation(self):
-        s = EntitlementState(refill_expiry_epoch_ms=1_700_000_000_000 + 20 * 86_400_000)
-        now = 1_700_000_000_000
-        self.assertTrue(s.is_valid_deletion_schedule_seconds(30, now))
-        self.assertTrue(s.is_valid_deletion_schedule_seconds(259_200, now))
+    def test_unit_and_value_picks_largest_exact_unit(self):
+        self.assertEqual(unit_and_value(900), (15, "MINUTES"))
+        self.assertEqual(unit_and_value(30), (30, "SECONDS"))
+        self.assertEqual(unit_and_value(7_200), (2, "HOURS"))
+        self.assertEqual(unit_and_value(259_200), (3, "DAYS"))
+        self.assertEqual(unit_and_value(90), (90, "SECONDS"))
 
     def test_ocr_and_label_search(self):
         engine = MarkPersistenceEngine()

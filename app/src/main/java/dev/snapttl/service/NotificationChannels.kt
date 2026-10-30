@@ -11,6 +11,7 @@ object NotificationChannels {
     const val CAPTURE = "capture_monitor"
     const val RELAUNCH = "service_relaunch_reminder"
     const val PERMISSION = "permission_error"
+    const val ACTIONS = "capture_actions"
 
     fun create(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -30,7 +31,12 @@ object NotificationChannels {
                 PERMISSION,
                 context.getString(R.string.channel_permission),
                 NotificationManager.IMPORTANCE_HIGH
-            ).apply { description = context.getString(R.string.channel_permission_desc) }
+            ).apply { description = context.getString(R.string.channel_permission_desc) },
+            NotificationChannel(
+                ACTIONS,
+                context.getString(R.string.channel_actions),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = context.getString(R.string.channel_actions_desc) }
         )
         manager.createNotificationChannels(channels)
     }

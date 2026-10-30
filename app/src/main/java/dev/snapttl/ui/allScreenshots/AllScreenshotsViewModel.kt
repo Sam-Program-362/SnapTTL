@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.snapttl.data.repository.ScreenshotMedia
 import dev.snapttl.di.Services
-import dev.snapttl.domain.EntitlementState
-import dev.snapttl.domain.TimeChips
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.service.CaptureActions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +16,7 @@ data class AllScreenshotsUiState(
     val items: List<ScreenshotMedia> = emptyList(),
     val scheduledIds: Set<Long> = emptySet(),
     val selected: Set<Long> = emptySet(),
-    val allowedChips: List<Long> = emptyList()
+    val defaultDurationSeconds: Long = DeletionDuration.DEFAULT_SECONDS
 )
 
 class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
@@ -36,11 +35,10 @@ class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
 
     fun refresh() {
         viewModelScope.launch {
-            val unlocked = entitlement().hasUnlockedFeatures(System.currentTimeMillis())
             _uiState.update {
                 it.copy(
                     items = services.screenshotRepo.queryScreenshots(),
-                    allowedChips = TimeChips.allowed(unlocked)
+                    defaultDurationSeconds = services.prefs.autoDeleteDurationSeconds
                 )
             }
         }
@@ -62,14 +60,13 @@ class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
     }
 
     /**
-     * Schedules every selected screenshot for deletion [seconds] from now. Free-tier
-     * rules are enforced (15–45 minutes) before anything is armed.
+     * Schedules every selected screenshot for deletion [seconds] from now
+     * (1 s … 7 d).
      */
     fun scheduleForSelected(seconds: Long) {
         val ids = _uiState.value.selected.toList()
         if (ids.isEmpty()) return
-        val now = System.currentTimeMillis()
-        if (!entitlement().isValidDeletionScheduleSeconds(seconds, now)) return
+        if (!DeletionDuration.isValidSeconds(seconds)) return
         viewModelScope.launch {
             ids.forEach { id -> services.expiryRepo.scheduleIn(id, seconds) }
             services.analytics.logEvent("bulk_schedule_delete", mapOf("selected_time" to seconds))
@@ -97,9 +94,4 @@ class AllScreenshotsViewModel(private val services: Services) : ViewModel() {
         }
     }
 
-    private fun entitlement() = EntitlementState(
-        premiumPurchased = services.prefs.havePremiumPurchased,
-        adsRemoved = services.prefs.haveAdsRemoved,
-        refillExpiryEpochMs = services.prefs.refillExpiryEpochMs
-    )
 }
