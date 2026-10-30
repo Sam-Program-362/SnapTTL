@@ -1,0 +1,52 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "80dbabb1e7852bd2c53fd80dd8f89579",
+    "entities": [
+      {
+        "tableName": "ocr_label_index",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`screenshotId` INTEGER NOT NULL, `extractedText` TEXT NOT NULL, `labels` TEXT NOT NULL, `indexedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`screenshotId`))",
+        "fields": [
+          {
+            "fieldPath": "screenshotId",
+            "columnName": "screenshotId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extractedText",
+            "columnName": "extractedText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labels",
+            "columnName": "labels",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "indexedAtEpochMillis",
+            "columnName": "indexedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "screenshotId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '80dbabb1e7852bd2c53fd80dd8f89579')"
+    ]
+  }
+}
