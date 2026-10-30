@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.MediaStore
 import androidx.core.app.NotificationManagerCompat
+import dev.snapttl.R
 import dev.snapttl.di.Services
 import dev.snapttl.domain.EntitlementState
 import dev.snapttl.domain.ScreenshotFilter

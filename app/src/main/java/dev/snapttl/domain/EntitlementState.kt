@@ -25,7 +25,7 @@ class EntitlementState(
     fun refillDaysLeft(nowMs: Long): Int {
         if (refillExpiryEpochMs <= nowMs) return 0
         val days = (refillExpiryEpochMs - nowMs) / DAY_MS
-        return days.coerceIn(0, REFILL_MAX_DAYS)
+        return days.coerceIn(0L, REFILL_MAX_DAYS.toLong()).toInt()
     }
 
     fun hasUnlockedFeatures(nowMs: Long): Boolean =

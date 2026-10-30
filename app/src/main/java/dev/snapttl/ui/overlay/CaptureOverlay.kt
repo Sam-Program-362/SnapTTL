@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import dev.snapttl.R
 import dev.snapttl.SnapTtlApp
 import dev.snapttl.data.expiry.ExpiryQueueItem
 import dev.snapttl.data.repository.ScreenshotMedia

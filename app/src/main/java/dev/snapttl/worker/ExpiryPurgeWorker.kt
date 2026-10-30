@@ -3,6 +3,7 @@ package dev.snapttl.worker
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import dev.snapttl.R
 import dev.snapttl.SnapTtlApp
 import dev.snapttl.data.repository.DeletionOutcome
 import dev.snapttl.service.ToastHelper

@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import dev.snapttl.R
 
 object NotificationChannels {
     const val CAPTURE = "capture_monitor"

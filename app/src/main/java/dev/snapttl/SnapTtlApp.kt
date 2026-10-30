@@ -65,6 +65,6 @@ private object EntitlementDays {
     private val DAY_MS = 24L * 60L * 60L * 1000L
     fun daysLeft(expiryMs: Long): Int {
         if (expiryMs <= 0L) return 0
-        return ((expiryMs - System.currentTimeMillis()) / DAY_MS).coerceIn(0, 40)
+        return ((expiryMs - System.currentTimeMillis()) / DAY_MS).coerceIn(0L, 40L).toInt()
     }
 }
