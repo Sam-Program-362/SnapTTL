@@ -31,8 +31,6 @@ class SnapTtlApp : Application() {
         NotificationChannels.create(this)
         services = buildServices()
         LocaleHelper.apply(this, services.prefs.languageCode)
-        // Crash/boot safety net: make sure every queued deletion has live work.
-        appScope.launch { services.expiryRepo.rescheduleAll() }
     }
 
     private fun buildServices(): Services {
@@ -74,4 +72,13 @@ class SnapTtlApp : Application() {
         adsRemoved = container.prefs.haveAdsRemoved,
         refillExpiryEpochMs = container.prefs.refillExpiryEpochMs
     )
+
+    /**
+     * Runs the expiry-queue reconcile (crash/boot safety net) once per app open.
+     * Application.onCreate stays side-effect-light so background WorkManager
+     * traffic never races app startup (or unit tests).
+     */
+    fun reconcileQueue() {
+        appScope.launch { services.expiryRepo.rescheduleAll() }
+    }
 }

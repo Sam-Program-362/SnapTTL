@@ -24,6 +24,9 @@ class MainActivity : ComponentActivity() {
         if (app.services.prefs.serviceEnabled && !dev.snapttl.service.CaptureMonitorService.isRunning) {
             dev.snapttl.service.CaptureMonitorService.start(this)
         }
+        // Reconcile the expiry queue on app open (boot covers reboots; this covers
+        // process death without a reboot).
+        app.reconcileQueue()
         setContent {
             SnapTtlTheme {
                 CompositionLocalProvider(

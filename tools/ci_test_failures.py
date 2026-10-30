@@ -21,7 +21,7 @@ def surface(path: Path) -> None:
         failures = list(tc.iter("failure")) + list(tc.iter("error"))
         for fail in failures:
             msg = ((fail.get("message") or "") + " " + (fail.text or ""))
-            msg = " ".join(msg.split())[:400]
+            msg = " ".join(msg.split())[:1600]
             print(f"::error::FAILED {tc.get('classname')}.{tc.get('name')} :: {msg}")
 
 
