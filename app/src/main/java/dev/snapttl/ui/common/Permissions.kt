@@ -13,6 +13,7 @@ import android.provider.Settings
  * partial access (`READ_MEDIA_VISUAL_USER_SELECTED`, granted only when the user picks
  * "Select photos") both let the app see screenshots, so either counts as granted.
  */
+@android.annotation.SuppressLint("InlinedApi") // permission String constants are compile-time inlined
 object Permissions {
 
     const val NOTIFICATIONS = Manifest.permission.POST_NOTIFICATIONS
