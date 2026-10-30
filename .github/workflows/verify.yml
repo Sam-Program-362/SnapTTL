@@ -44,16 +44,23 @@ jobs:
       - name: Report test failure on the PR
         if: failure()
         run: |
+          set +e
+          if [ -f /tmp/unit-tests.log ]; then
+            grep -nE "^e: |error:|FAILED|Execution failed|What went wrong|Unresolved|Caused by|BUILD FAILED" \
+              /tmp/unit-tests.log | head -40 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
           {
             echo "### SnapTTL — unit test failure"
             echo ""
             echo '```text'
-            grep -nE "^e: |error:|FAILED|Execution failed|What went wrong|Unresolved|Caused by|Tests run|BUILD" /tmp/unit-tests.log | head -120
+            tail -n 200 /tmp/unit-tests.log 2>/dev/null
             echo '```'
           } > /tmp/report.md
           NUMBER="${{ github.event.pull_request.number }}"
           if [ -n "$NUMBER" ]; then
-            gh issue comment "$NUMBER" --repo "${{ github.repository }}" --body "$(cat /tmp/report.md)"
+            gh issue comment "$NUMBER" --repo "${{ github.repository }}" --body "$(cat /tmp/report.md)" || true
           fi
 
       - name: Lint
