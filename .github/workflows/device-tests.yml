@@ -46,6 +46,17 @@ jobs:
           # ("error while loading shared libraries: libpulse.so.0").
           sudo apt-get update -qq && sudo apt-get install -y -qq libpulse0
 
+      - name: Free disk for the emulator (API 34/35 userdata needs ~7.2 GB)
+        run: |
+          # Drop preinstalled SDK pieces this job never uses: NDK bundles and
+          # every system image but the one this matrix leg installs next.
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/* \
+                      /usr/local/lib/android/sdk/system-images/* \
+                      /usr/local/lib/android/sdk/sources/* \
+                      /usr/local/lib/android/sdk/skins/*
+          sudo apt-get clean
+          echo "::warning::free disk after cleanup: $(df -h / | tail -1 | awk '{print $4}')"
+
       - name: Install system image and create AVD
         run: |
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
