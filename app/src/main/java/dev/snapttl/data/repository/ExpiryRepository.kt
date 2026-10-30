@@ -50,9 +50,11 @@ class ExpiryRepository(
             createdAtEpochMillis = now,
             screenshotId = screenshotId
         )
-        dao.insertOrReplace(item)
+        val rowId = dao.insertOrReplace(item)
         enqueuePurge(item)
-        return item
+        // insertOrReplace assigns the auto-generated row id; return the persisted
+        // shape so callers can cancel by ExpiryQueueItem.id.
+        return item.copy(id = rowId)
     }
 
     /** Convenience for "delete in [durationSeconds] from now". */

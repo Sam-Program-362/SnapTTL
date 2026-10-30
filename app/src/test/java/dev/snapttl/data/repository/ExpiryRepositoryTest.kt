@@ -122,6 +122,20 @@ class ExpiryRepositoryTest {
     }
 
     @Test
+    fun scheduleIn_returns_persisted_row_so_cancel_by_returned_id_works() = runBlocking {
+        // Regression: scheduleIn used to hand back the pre-insert entity (id = 0),
+        // so cancel(returnedItem.id) was a silent no-op and the purge still fired.
+        val scheduled = repo.scheduleIn(screenshotId = 77, durationSeconds = 900)
+
+        assertTrue("returned row must carry the DB-assigned id", scheduled.id != 0L)
+
+        repo.cancel(scheduled.id)
+
+        assertNull(repo.findByScreenshot(77))
+        assertEquals(WorkInfo.State.CANCELLED, uniqueWorkInfos(77)[0].state)
+    }
+
+    @Test
     fun cancel_by_screenshot_removes_row_and_work() = runBlocking {
         repo.scheduleIn(screenshotId = 11, durationSeconds = 60)
         repo.cancelByScreenshot(11)
