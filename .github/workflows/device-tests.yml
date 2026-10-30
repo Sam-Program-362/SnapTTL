@@ -61,8 +61,11 @@ jobs:
           # partition for API 34/35 images needs 7.4 GB, more than the runner
           # disk allows ("Not enough space to create userdata partition").
           AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
-          printf 'hw.cpu.ncore=2\nhw.ramSize=2048\nhw.keyboard=yes\ndisk.dataPartition.size=2g\n' \
-            >> "$AVD_HOME/ci_avd.avd/config.ini"
+          CONFIG="$AVD_HOME/ci_avd.avd/config.ini"
+          sed -i 's/^disk\.dataPartition\.size=.*/disk.dataPartition.size=2g/' "$CONFIG"
+          grep -q '^disk.dataPartition.size' "$CONFIG" \
+            || echo 'disk.dataPartition.size=2g' >> "$CONFIG"
+          printf 'hw.cpu.ncore=2\nhw.ramSize=2048\nhw.keyboard=yes\n' >> "$CONFIG"
 
       - name: Boot the emulator (up to 3 attempts)
         run: |
@@ -73,7 +76,7 @@ jobs:
             "$ANDROID_HOME/emulator/emulator" -avd ci_avd -no-window \
               -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none \
               -no-snapshot -feature -Vulkan -feature GLDirectMem \
-              > /tmp/emulator.log 2>&1 &
+              -partition-size 2048 > /tmp/emulator.log 2>&1 &
             EMU_PID=$!
             deadline=$(( $(date +%s) + 600 ))
             booted=0
