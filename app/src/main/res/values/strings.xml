@@ -1,0 +1,78 @@
+<resources>
+    <string name="app_name">SnapTTL</string>
+    <string name="app_tagline">Time-to-live for every screenshot.</string>
+    <string name="fgs_subtype">Continuously monitors the system Screenshots directory so the app can instantly detect and respond to newly created screenshots. This is a background utility: users expect it to run persistently without reopening it after each device restart.</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_scheduled">Scheduled</string>
+    <string name="nav_screenshots">Screenshots</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="home_title">Home</string>
+    <string name="home_service_off">Screenshot monitor is off</string>
+    <string name="home_service_on">Screenshot monitor is on</string>
+    <string name="home_enable_service">Enable monitor</string>
+    <string name="home_permissions_title">Required permissions</string>
+    <string name="home_granted">Granted</string>
+    <string name="home_missing">Grant</string>
+
+    <string name="scheduled_title">Scheduled for deletion</string>
+    <string name="scheduled_empty">Nothing is scheduled.</string>
+    <string name="scheduled_delete_now">Delete now</string>
+    <string name="scheduled_cancel">Cancel timer</string>
+
+    <string name="screenshots_title">All screenshots</string>
+    <string name="screenshots_empty">No screenshots found on this device.</string>
+    <string name="screenshots_select_hint">Long-press a screenshot to select several, then set timers, cancel timers or share them.</string>
+    <string name="screenshots_bulk_timer">Set delete timer</string>
+    <string name="screenshots_bulk_cancel">Cancel timers</string>
+    <string name="screenshots_bulk_share">Share</string>
+    <string name="screenshots_bulk_delete">Delete</string>
+
+    <string name="search_title">Search</string>
+    <string name="search_hint">Search text or labels indexed on device</string>
+    <string name="search_empty">No matches.</string>
+    <string name="search_indexing">Indexing screenshots…</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_service">Screenshot monitor</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_system_language">System default</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_buy_premium">Buy Premium</string>
+    <string name="settings_remove_ads">Remove ads</string>
+    <string name="settings_about">SnapTTL %1$s — time-to-live for every screenshot.</string>
+
+    <string name="extra_features_title">Extra features</string>
+    <string name="extra_silent_auto_delete">Silent auto-delete</string>
+    <string name="extra_silent_premium_only">Premium-only feature; not covered by a refill.</string>
+    <string name="extra_refill_days">%1$d days of ad-free refill left</string>
+
+    <string name="overlay_delete_in">This screenshot will be deleted in %1$s</string>
+    <string name="overlay_keep">Keep</string>
+    <string name="overlay_close">Close</string>
+    <string name="overlay_share_and_delete">Share &amp; delete in %1$s</string>
+
+    <string name="toast_deleted">Screenshot deleted</string>
+    <string name="toast_delete_failed">Could not delete the screenshot</string>
+    <string name="toast_kept">Kept</string>
+    <string name="toast_permission_missing">Some permissions are still missing</string>
+
+    <string name="easter_egg_title">Sweep Blitz</string>
+    <string name="easter_egg_subtitle">Tap the screenshots before they escape the shredder!</string>
+    <string name="easter_egg_start">Start game</string>
+    <string name="easter_egg_finish_score">Score: %1$d</string>
+
+    <string name="channel_capture">Capture monitor</string>
+    <string name="channel_capture_desc">Ongoing notification while SnapTTL watches for screenshots.</string>
+    <string name="channel_relaunch">Service relaunch reminder</string>
+    <string name="channel_relaunch_desc">A reminder to re-enable SnapTTL if the background service was stopped.</string>
+    <string name="channel_permission">Permission needed</string>
+    <string name="channel_permission_desc">Notifies you when SnapTTL still needs a permission.</string>
+
+    <string name="notification_capture_title">SnapTTL is watching</string>
+    <string name="notification_capture_text">New screenshots will get an instant delete timer.</string>
+    <string name="notification_relaunch_text">SnapTTL was stopped by the system. Tap to restart the monitor.</string>
+    <string name="notification_action_open">Open</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <color name="snapttl_background">#0E1113</color>
+    <color name="snapttl_surface">#181C1F</color>
+    <color name="snapttl_surface_raised">#24292D</color>
+    <color name="snapttl_primary">#FF4500</color>
+    <color name="snapttl_on_primary">#FFFFFF</color>
+    <color name="snapttl_ic_launcher_background">#FF4500</color>
+</resources>
