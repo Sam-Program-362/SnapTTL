@@ -28,6 +28,11 @@ Guidance for agents working in this repository.
 
 - JUnit + Robolectric live in `app/src/test/java/dev/snapttl/**`; key suites run
   against Robolectric SDK 30/34/35 (Android 11/14/15).
+- Robolectric suites use a hermetic plain `Application` (`HermeticApp` in
+  `@Config`): Robolectric re-creates the app per test method while WorkManager
+  statics persist across the sandbox, so a real app calling
+  `WorkManager.getInstance` in `onCreate` races any test that swaps the
+  WorkManager instance via `WorkManagerTestInitHelper`.
 - Instrumented tests live in `app/src/androidTest/java/dev/snapttl/**` and run on the
   emulator matrix (`.github/workflows/device-tests.yml`, API 30/34/35).
 - The Python mirror in `tools/` must stay consistent with `domain/`.

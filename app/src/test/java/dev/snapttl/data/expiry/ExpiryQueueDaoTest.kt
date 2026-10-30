@@ -14,8 +14,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30, 34, 35])
+@Config(sdk = [30, 34, 35], application = ExpiryQueueDaoTest.HermeticApp::class)
 class ExpiryQueueDaoTest {
+
+    /**
+     * Plain Application: these suites only need a Context for an in-memory Room DB.
+     * Keeping SnapTtlApp out keeps them independent of WorkManager sandbox state
+     * (Robolectric re-creates the app per method while WorkManager statics persist).
+     */
+    class HermeticApp : android.app.Application()
 
     private lateinit var database: ExpiryDatabase
     private lateinit var dao: ExpiryQueueDao
