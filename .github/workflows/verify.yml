@@ -33,7 +33,25 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'clean_room_core_tests.py' -v
 
       - name: Unit tests (JUnit + Robolectric, SDK 30/34/35)
-        run: ./gradlew :app:testDebugUnitTest --no-daemon --console=plain
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --no-daemon --console=plain 2>&1 | tee /tmp/unit-tests.log
+
+      - name: Surface unit-test errors as annotations
+        if: failure()
+        run: |
+          grep -aE "^e: |error: |Execution failed|What went wrong|Unresolved|Could not find|Caused by" \
+            /tmp/unit-tests.log | head -60 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+
+      - name: Upload full unit-test log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-log
+          path: /tmp/unit-tests.log
+          if-no-files-found: ignore
 
       - name: Upload test reports on failure
         if: failure()
@@ -44,7 +62,17 @@ jobs:
           if-no-files-found: ignore
 
       - name: Lint
-        run: ./gradlew :app:lintDebug --no-daemon --console=plain
+        run: |
+          set -o pipefail
+          ./gradlew :app:lintDebug --no-daemon --console=plain 2>&1 | tee /tmp/lint.log
+
+      - name: Surface lint errors as annotations
+        if: failure()
+        run: |
+          grep -aE "^e: |error: |Execution failed|What went wrong|Could not find" \
+            /tmp/lint.log | head -40 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
 
       - name: Room schema export
         run: |

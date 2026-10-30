@@ -54,7 +54,24 @@ jobs:
             -camera-back none -no-snapshot-save
           script: |
             adb shell settings put global window_animation_scale 0
-            ./gradlew :app:connectedDebugAndroidTest --no-daemon --console=plain
+            set -o pipefail
+            ./gradlew :app:connectedDebugAndroidTest --no-daemon --console=plain 2>&1 | tee /tmp/connected.log
+
+      - name: Surface connected-test errors as annotations
+        if: failure()
+        run: |
+          grep -aE "^e: |error: |Execution failed|What went wrong|FAILED|Unresolved|Could not find|Tests on" \
+            /tmp/connected.log | head -60 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+
+      - name: Upload full connected-test log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: connected-log-api${{ matrix.api-level }}
+          path: /tmp/connected.log
+          if-no-files-found: ignore
 
       - name: Upload instrumented test reports
         if: always()
