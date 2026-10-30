@@ -6,6 +6,13 @@ name: Export Room schemas
 # artifacts.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - arena/85a2efc2-snapttl
+    paths:
+      - 'app/src/main/java/dev/snapttl/data/**'
+      - 'app/build.gradle.kts'
 
 permissions:
   contents: write
