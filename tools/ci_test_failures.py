@@ -47,10 +47,10 @@ def surface_lint(path: Path) -> None:
     except (ET.ParseError, OSError):
         return
     for issue in tree.iter("issue"):
-        severity = (issue.get("severity") or "").lower()
-        if severity not in ("error", "fatal", "warning"):
+        severity = (issue.get("severity") or "error").lower()
+        if severity not in ("error", "fatal", "warning", "informational"):
             continue
-        kind = "error" if severity != "warning" else "warning"
+        kind = "error" if severity in ("error", "fatal") else "warning"
         location = issue.find("location")
         where = ""
         if location is not None:
