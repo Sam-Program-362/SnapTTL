@@ -105,8 +105,14 @@ epoch-ms). The previous clean-room implementation (removed in this session) had:
 | 12 | Offline, no broad storage, Room KSP schemas | manifest (no network perms), CI permission allowlist, `app/schemas/` |
 
 ## Verification status
-- Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **11 tests pass**
-  (updated for the duration model).
+- Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **15 tests pass**
+  (duration model + chip-list rules).
+- **Round 3 (user-defined quick options on the popup) green on `main`** @ `1b8be8e`
+  (PR #8 + #9): Verify + Device tests (Android 11/14/15) all ✓.
+- **Signed release v0.1.1 published** —
+  https://github.com/Sam-Program-362/SnapTTL/releases/tag/v0.1.1
+  (`app-release.apk`, versionCode 2). v0.1.0 (round-2 popup, superseded) also
+  remains published.
 - **Round 2 (free app + durations + popup fix) fully green on `main`** @ `b69d7f2`
   (PR #5 + #6): Verify `41109855494` ✓, Device tests `41109855811` ✓ (Android
   11/14/15), Build APK `41109855435` ✓, Export Room schemas ✓.
