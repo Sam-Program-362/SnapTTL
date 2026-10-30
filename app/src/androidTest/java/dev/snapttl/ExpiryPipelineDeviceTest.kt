@@ -57,7 +57,9 @@ class ExpiryPipelineDeviceTest {
     @Test
     fun scheduled_deletion_fires_after_delay_and_cleans_up() {
         val id = insertScreenshot()
-        assertNotNull(app.services.screenshotRepo.findScreenshot(id))
+        assertNotNull(kotlinx.coroutines.runBlocking {
+            app.services.screenshotRepo.findScreenshot(id)
+        })
 
         // Arm a 6-second timer (shortest reliable delay for the device scheduler).
         kotlinx.coroutines.runBlocking {
@@ -68,7 +70,9 @@ class ExpiryPipelineDeviceTest {
         Thread.sleep(2_000)
         assertNotNull(
             "screenshot must still exist before the scheduled time",
-            app.services.screenshotRepo.findScreenshot(id)
+            kotlinx.coroutines.runBlocking {
+                app.services.screenshotRepo.findScreenshot(id)
+            }
         )
 
         // ... and gone a little after it.

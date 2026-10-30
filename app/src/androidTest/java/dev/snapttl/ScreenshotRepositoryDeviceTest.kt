@@ -62,15 +62,21 @@ class ScreenshotRepositoryDeviceTest {
     fun insert_discover_and_delete_via_mediaStore() {
         val id = insertScreenshot()
 
-        val found = app.services.screenshotRepo.findScreenshot(id)
+        val found = kotlinx.coroutines.runBlocking {
+            app.services.screenshotRepo.findScreenshot(id)
+        }
         assertNotNull("inserted screenshot should be discoverable", found)
         assertTrue(found!!.displayName.startsWith("Screenshot_"))
         assertEquals(id, found.id)
 
-        val outcome = app.services.screenshotRepo.deleteScreenshot(found)
+        val outcome = kotlinx.coroutines.runBlocking {
+            app.services.screenshotRepo.deleteScreenshot(found)
+        }
         assertEquals(DeletionOutcome.DELETED, outcome)
         assertNull("deleted screenshot must vanish from MediaStore",
-            app.services.screenshotRepo.findScreenshot(id))
+            kotlinx.coroutines.runBlocking {
+                app.services.screenshotRepo.findScreenshot(id)
+            })
     }
 
     @Test
