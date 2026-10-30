@@ -67,17 +67,34 @@ Android 14+ and 11+, and once sound, run an APK-building workflow.
 
 ## Verification status
 - Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **11 tests pass**.
-- CI (branch `arena/85a2efc2-snapttl`, run after `a216034`): Verify + Device tests
-  (API 30/34/35 emulators) — in progress at time of writing; check
-  `gh run list --branch arena/85a2efc2-snapttl`.
-- Room schemas exported in CI (artifact `room-schemas`) — must be downloaded and
-  committed once green.
-- After green: run `build-apk.yml` (workflow_dispatch) to produce the actual APK.
+- **CI green** on branch `arena/85a2efc2-snapttl` @ `6e3fca7`:
+  - **Verify** run `41065467886` ✓ — clean-room Python mirror, Robolectric unit
+    tests (SDK 30/34/35, hermetic apps), lint (0 errors), Room schema export,
+    debug APK build, and the packaged-permission audit (exact 11-permission
+    allowlist, `INTERNET`/`ACCESS_NETWORK_STATE` stripped via
+    `tools:node="remove"` from the ML Kit manifests).
+  - **Device tests** run `41065468083` ✓ — connected tests on Android 11 / 14 / 15
+    emulators (AppLaunch, ScreenshotRepository, ExpiryPipeline incl. the
+    cancelled-timer regression).
+- Room schemas exported and **committed** to `app/schemas/` by the
+  `export-schemas.yml` workflow (runs on data-layer pushes to the working
+  branch + main, commits the KSP-generated JSONs back).
+
+## Late-stage fixes found by CI
+- `backup_rules.xml`: a redundant `<exclude>` next to an `<include>` is a
+  FullBackupContent **error** — the include alone already excludes everything else.
+- ML Kit's common library injects `INTERNET` + `ACCESS_NETWORK_STATE` into the
+  merged manifest even for bundled models; removed with
+  `tools:node="remove"` to honor the offline contract.
+- `ExpiryRepository.schedule()` returned the **pre-insert** entity (id = 0), so
+  `cancel(returnedItem.id)` was a silent no-op and a cancelled purge still fired
+  (caught by the API-34 device test; regression test added). It now returns
+  `item.copy(id = dao.insertOrReplace(item))`.
 
 ## Pending / next steps
-- [ ] CI green on Verify + Device tests (API 30/34/35).
-- [ ] Fetch Room schema artifact from CI and commit it to `app/schemas/`.
+- [x] CI green on Verify + Device tests (API 30/34/35).
+- [x] Room schema JSONs committed to `app/schemas/`.
 - [ ] Trigger `Build APK` workflow; confirm unsigned release APK artifact builds.
-- [ ] Open PR to main, merge, re-run on main, tag `v0.1.0` only if signed release is
-      wanted (needs `SNAPTTL_KEYSTORE_*` secrets).
-- [ ] Update SPEC device matrix with actual CI run links.
+- [x] Open PR to main, merge (see below).
+- [ ] Tag `v0.1.0` only if a signed release is wanted (needs
+      `SNAPTTL_KEYSTORE_*` secrets).
