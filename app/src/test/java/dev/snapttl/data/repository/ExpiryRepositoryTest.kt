@@ -28,10 +28,18 @@ import org.robolectric.annotation.Config
  * cancelling must remove both the row and the work.
  *
  * Runs against the Android 11 / 14 / 15 Robolectric sandboxes.
+ *
+ * Uses a hermetic [HermeticApp]: this suite installs its own test WorkManager, and
+ * Robolectric re-creates the Application per test method while the WorkManager
+ * static instance persists — a real app that calls WorkManager.getInstance() in
+ * onCreate would race that swap.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30, 34, 35])
+@Config(sdk = [30, 34, 35], application = ExpiryRepositoryTest.HermeticApp::class)
 class ExpiryRepositoryTest {
+
+    /** Plain Application: no SnapTtlApp service graph, no WorkManager lookups. */
+    class HermeticApp : android.app.Application()
 
     private lateinit var context: Context
     private lateinit var database: ExpiryDatabase
