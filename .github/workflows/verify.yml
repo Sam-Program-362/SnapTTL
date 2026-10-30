@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: verify-${{ github.ref }}
@@ -31,25 +32,47 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'clean_room_core_tests.py' -v
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
+        run: |
+          set +e
+          ./gradlew :app:testDebugUnitTest --no-daemon --console=plain > /tmp/unit-tests.log 2>&1
+          status=$?
+          tail -n 120 /tmp/unit-tests.log
+          echo "gradle_exit=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+        id: unit-tests
+
+      - name: Report test failure on the PR
+        if: failure()
+        run: |
+          {
+            echo "### SnapTTL — unit test failure"
+            echo ""
+            echo '```text'
+            grep -nE "^e: |error:|FAILED|Execution failed|What went wrong|Unresolved|Caused by|Tests run|BUILD" /tmp/unit-tests.log | head -120
+            echo '```'
+          } > /tmp/report.md
+          NUMBER="${{ github.event.pull_request.number }}"
+          if [ -n "$NUMBER" ]; then
+            gh issue comment "$NUMBER" --repo "${{ github.repository }}" --body "$(cat /tmp/report.md)"
+          fi
 
       - name: Lint
-        run: ./gradlew :app:lintDebug --no-daemon
+        run: ./gradlew :app:lintDebug --no-daemon --console=plain
 
       - name: Room schema export
         run: |
-          ./gradlew :app:kspDebugKotlin --no-daemon
+          ./gradlew :app:kspDebugKotlin --no-daemon --console=plain
           test -f app/schemas/dev.snapttl.data.expiry.ExpiryDatabase/1.json
           test -f app/schemas/dev.snapttl.data.search.SearchIndexDatabase/1.json
           echo "--- Room schemas ---"
           ls -1 app/schemas
 
       - name: Debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon
+        run: ./gradlew :app:assembleDebug --no-daemon --console=plain
 
       - name: Packaged permission audit
         run: |
-          ./gradlew :app:processDebugMainManifest --no-daemon
+          ./gradlew :app:processDebugMainManifest --no-daemon --console=plain
           echo "--- merged manifest permissions ---"
           grep -o 'android.permission\.[A-Z_]*' \
             app/build/intermediates/merged_manifest/debug/AndroidManifest.xml | sort -u
