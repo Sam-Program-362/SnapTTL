@@ -16,10 +16,10 @@ android {
     signingConfigs {
         if (keystoreFile != null) {
             create("release") {
-                storeFile(file(keystoreFile))
-                storePassword(project.property("snapttl.storePassword") as String)
-                keyAlias(project.property("snapttl.keyAlias") as String)
-                keyPassword(project.property("snapttl.keyPassword") as String)
+                storeFile = file(keystoreFile)
+                storePassword = project.property("snapttl.storePassword") as String
+                keyAlias = project.property("snapttl.keyAlias") as String
+                keyPassword = project.property("snapttl.keyPassword") as String
             }
         }
     }
