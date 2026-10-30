@@ -98,6 +98,11 @@ by the monitor-service toast). `Stepper` composable deleted. Version bumped to
 **0.1.2 / versionCode 3**. Python mirror extended: 17 tests (ladder order +
 nearest-rung snapping).
 
+Shipped: branch `arena/30a4731e-snapttl`, PR **#11** merged `2026-10-30T23:15Z`
+(main @ `d18afa2`); Verify + Device tests green on both the push and the
+pull_request events; **signed release v0.1.2** published (release run
+`41143413043` ✓, `app-release.apk` 89,782,318 bytes).
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).
@@ -146,7 +151,7 @@ nearest-rung snapping).
 | 4 | Scheduled deletion queue with silent reschedule | `data/expiry/*`, `ExpiryRepository` (delayed, REPLACE, rescheduleAll), `ExpiryPurgeWorker` |
 | 5 | On-device OCR + image labeling index + search | `vision/*`, `data/search/*`, `SearchRepository`, `OcrIndexWorker`, Search screen |
 | 6 | Manage-all-screenshots | Home recent grid / All Screenshots screens, `ScreenshotRepository.listAll` |
-| 7 | Free app: user-set durations (stepper ≤ 7 d; overlay date/time path ≤ 1 y) | `domain/DeletionDuration`, `ui/common/DurationPicker`, overlay stepper + date/time mode, `PrefsManager.autoDeleteDurationSeconds` |
+| 7 | Free app: user-set durations (slider ≤ 7 d; overlay date/time path ≤ 1 y) | `domain/DeletionDuration` (+ `LADDER`), `ui/common/DurationPicker` (slider + wheels), overlay custom/date-time modes, `PrefsManager.autoDeleteDurationSeconds` |
 | 8 | Crash-resilient silent delete | `ExpiryPurgeWorker` retry, `rescheduleAll`, `BootCompletedReceiver`, service auto-start in `MainActivity` |
 | 9 | OEM auto-start routing | `domain/OemAutoStart` + Settings screen |
 | 10 | In-app locale switching | `language/AppLanguage`, `language/LocaleHelper` (33+ per-app locale), Settings |
@@ -154,8 +159,15 @@ nearest-rung snapping).
 | 12 | Offline, no broad storage, Room KSP schemas | manifest (no network perms), CI permission allowlist, `app/schemas/` |
 
 ## Verification status
-- Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **15 tests pass**
-  (duration model + chip-list rules).
+- Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **17 tests pass**
+  (duration model + chip-list rules + snap ladder).
+- **Round 4 (compact popup + slider + ember theme) green on `main`** @ `d18afa2`
+  (PR #11): Verify `41141564454`/`41142462870` ✓, Device tests
+  `41141564434`/`41142462947` ✓ (Android 11/14/15).
+- **Signed release v0.1.2 published** —
+  https://github.com/Sam-Program-362/SnapTTL/releases/tag/v0.1.2
+  (`app-release.apk`, 89,782,318 bytes, versionCode 3; release run
+  `41143413043` ✓).
 - **Round 3 (user-defined quick options on the popup) green on `main`** @ `1b8be8e`
   (PR #8 + #9): Verify + Device tests (Android 11/14/15) all ✓.
 - **Signed release v0.1.1 published** —
@@ -174,12 +186,15 @@ nearest-rung snapping).
 - [x] CI green on Verify + Device tests (API 30/34/35).
 - [x] Room schema JSONs committed to `app/schemas/`.
 - [x] Build APK workflow green — unsigned artifacts on every main push.
-- [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2) merged; main fully green.
-- [x] Signed release v0.1.0 tagged and published with the signed APK attached.
-- [ ] User re-tests the **signed** APK on the Android 16 device: popup after
-      screenshot (needs "Display over other apps"), custom durations via the
-      stepper, date/time path, and the notification fallback when the overlay
-      permission is off.
+- [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2), PR #8/#9 (round 3), PR #11
+      (round 4) merged; main fully green.
+- [x] Signed releases v0.1.0, v0.1.1 and v0.1.2 tagged/published with the
+      signed APK attached.
+- [ ] User re-tests the **signed v0.1.2** APK on the Android 16 device: compact
+      bottom-centre popup after screenshot, wide preview strip, one-tap chips,
+      slider custom timer, wheel date/time, immediate auto-close, ember theme
+      (dark + light), and the notification fallback when the overlay permission
+      is off.
 - [ ] If the ad-refill idea is revived, see "Deferred monetization option" above.
 
 ## Late-stage fixes found by CI
@@ -193,6 +208,10 @@ nearest-rung snapping).
   (caught by the API-34 device test; regression test added). It now returns
   `item.copy(id = dao.insertOrReplace(item))`.
 - androidTest suspend calls must be wrapped in `runBlocking` (five were bare).
+- Round 4: `rememberSnapFlingItemBehavior` **does not exist** — the LazyList snap
+  fling factory in foundation 1.7 is `rememberSnapFlingBehavior(lazyListState,
+  snapPosition = SnapPosition.Center)` (verified against the androidx BCV
+  snapshot `compose/foundation/foundation/api/1.7.0-beta02.txt`).
 
 ## Device-test emulator saga (resolved 2026-10-30)
 Connected tests started failing on 2026-10-30 ~14:20Z with "Timeout waiting for
