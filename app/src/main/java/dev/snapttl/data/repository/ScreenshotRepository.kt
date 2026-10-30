@@ -14,6 +14,9 @@ enum class DeletionOutcome { DELETED, FAILED }
 /**
  * MediaStore screenshot discovery plus dual-method deletion (persistent SAF tree
  * first, MediaStore fallback), reconstructed from Mark's capture pipeline.
+ *
+ * All queries funnel through [ScreenshotFilter]; anything it rejects (pending,
+ * trashed, deleted, dot-prefixed, non-screenshot names) is invisible here.
  */
 class ScreenshotRepository(
     private val context: Context,
