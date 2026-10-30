@@ -12,8 +12,10 @@ permissions:
 jobs:
   device-tests:
     name: Connected tests · Android ${{ matrix.android }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # ubuntu-22.04 pinned: the ubuntu-latest/24.04 emulator images regressed on
+    # 2026-10-30 (every boot timed out); 22.04 boots reliably.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -34,30 +36,104 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Enable KVM for the emulator
+      - name: Enable KVM and install emulator runtime deps
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          # emulator 37's qemu links against PulseAudio, absent from the image
+          # ("error while loading shared libraries: libpulse.so.0").
+          sudo apt-get update -qq && sudo apt-get install -y -qq libpulse0
+
+      - name: Free disk for the emulator (API 34/35 userdata needs ~7.2 GB)
+        run: |
+          # Drop preinstalled SDK pieces this job never uses: NDK bundles and
+          # every system image but the one this matrix leg installs next.
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/* \
+                      /usr/local/lib/android/sdk/system-images/* \
+                      /usr/local/lib/android/sdk/sources/* \
+                      /usr/local/lib/android/sdk/skins/*
+          sudo apt-get clean
+          echo "::warning::free disk after cleanup: $(df -h / | tail -1 | awk '{print $4}')"
+
+      - name: Install system image and create AVD
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+          "$SDKM" --install "system-images;android-${{ matrix.api-level }};google_apis;x86_64" \
+            > /tmp/sdkinstall.log 2>&1 || { tail -30 /tmp/sdkinstall.log; exit 1; }
+          echo "::warning::emulator in use: $("$ANDROID_HOME/emulator/emulator" -version 2>&1 | head -1)"
+          echo "no" | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            --force --name ci_avd \
+            --package "system-images;android-${{ matrix.api-level }};google_apis;x86_64" \
+            --sdcard 512M
+          # Mirror android-emulator-runner's AVD tuning: the default userdata
+          # partition for API 34/35 images needs 7.4 GB, more than the runner
+          # disk allows ("Not enough space to create userdata partition").
+          AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+          CONFIG="$AVD_HOME/ci_avd.avd/config.ini"
+          sed -i 's/^disk\.dataPartition\.size=.*/disk.dataPartition.size=2g/' "$CONFIG"
+          grep -q '^disk.dataPartition.size' "$CONFIG" \
+            || echo 'disk.dataPartition.size=2g' >> "$CONFIG"
+          printf 'hw.cpu.ncore=2\nhw.ramSize=2048\nhw.keyboard=yes\n' >> "$CONFIG"
+
+      - name: Boot the emulator (up to 3 attempts)
+        run: |
+          export PATH="$PATH:$ANDROID_HOME/platform-tools"
+          for attempt in 1 2 3; do
+            echo "::group::Emulator boot attempt ${attempt}"
+            rm -f /tmp/emulator.log
+            "$ANDROID_HOME/emulator/emulator" -avd ci_avd -no-window \
+              -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none \
+              -no-snapshot -feature -Vulkan -feature GLDirectMem \
+              -partition-size 2048 > /tmp/emulator.log 2>&1 &
+            EMU_PID=$!
+            deadline=$(( $(date +%s) + 600 ))
+            booted=0
+            while [ "$(date +%s)" -lt "$deadline" ]; do
+              sleep 10
+              if ! kill -0 "$EMU_PID" 2>/dev/null; then
+                echo "emulator process died during attempt ${attempt}"
+                break
+              fi
+              if adb shell getprop sys.boot_completed 2>/dev/null | grep -q 1; then
+                if adb shell pm list packages 2>/dev/null | grep -q '^package:'; then
+                  booted=1
+                  break
+                fi
+              fi
+            done
+            if [ "$booted" -eq 1 ]; then
+              echo "Emulator booted on attempt ${attempt}."
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Boot attempt ${attempt} failed; emulator log tail follows."
+            tail -25 /tmp/emulator.log || true
+            adb emu kill > /dev/null 2>&1 || true
+            kill "$EMU_PID" > /dev/null 2>&1 || true
+            sleep 5
+          done
+          echo "All boot attempts failed; emulator log tail as annotations:"
+          # Only the last few lines: GitHub caps annotations at 10 per step and
+          # the actual crash message is always at the end.
+          tail -8 /tmp/emulator.log | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+          exit 1
 
       - name: Run instrumented tests on the emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          target: google_apis
-          arch: x86_64
-          force-avd-creation: false
-          disable-animations: true
-          emulator-options: >-
-            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-            -camera-back none -no-snapshot-save
-          script: |
-            adb shell settings put global window_animation_scale 0
-            ./gradlew :app:connectedDebugAndroidTest --no-daemon --console=plain > /tmp/connected.log 2>&1
-            code=$?
-            cat /tmp/connected.log
-            exit $code
+        run: |
+          export PATH="$PATH:$ANDROID_HOME/platform-tools"
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          ./gradlew :app:connectedDebugAndroidTest --no-daemon --console=plain > /tmp/connected.log 2>&1
+          code=$?
+          cat /tmp/connected.log
+          adb emu kill > /dev/null 2>&1 || true
+          exit $code
 
       - name: Surface connected-test errors as annotations
         if: failure()

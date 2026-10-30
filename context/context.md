@@ -67,15 +67,15 @@ Android 14+ and 11+, and once sound, run an APK-building workflow.
 
 ## Verification status
 - Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **11 tests pass**.
-- **CI green** on branch `arena/85a2efc2-snapttl` @ `6e3fca7`:
-  - **Verify** run `41065467886` ✓ — clean-room Python mirror, Robolectric unit
+- **CI green** on branch `arena/85a2efc2-snapttl` @ `caffd76`:
+  - **Verify** ✓ — clean-room Python mirror, Robolectric unit
     tests (SDK 30/34/35, hermetic apps), lint (0 errors), Room schema export,
     debug APK build, and the packaged-permission audit (exact 11-permission
     allowlist, `INTERNET`/`ACCESS_NETWORK_STATE` stripped via
     `tools:node="remove"` from the ML Kit manifests).
-  - **Device tests** run `41065468083` ✓ — connected tests on Android 11 / 14 / 15
+  - **Device tests** run `41088973940` ✓ — connected tests on Android 11 / 14 / 15
     emulators (AppLaunch, ScreenshotRepository, ExpiryPipeline incl. the
-    cancelled-timer regression).
+    cancelled-timer regression) after the emulator disk fix.
 - Room schemas exported and **committed** to `app/schemas/` by the
   `export-schemas.yml` workflow (runs on data-layer pushes to the working
   branch + main, commits the KSP-generated JSONs back).
@@ -90,6 +90,29 @@ Android 14+ and 11+, and once sound, run an APK-building workflow.
   `cancel(returnedItem.id)` was a silent no-op and a cancelled purge still fired
   (caught by the API-34 device test; regression test added). It now returns
   `item.copy(id = dao.insertOrReplace(item))`.
+- androidTest suspend calls must be wrapped in `runBlocking` (five were bare).
+
+## Device-test emulator saga (resolved 2026-10-30)
+Connected tests started failing on 2026-10-30 ~14:20Z with "Timeout waiting for
+emulator to boot" on every API level, then API 34/35 only. Root-caused through
+workflow-emitted annotations to **runner disk pressure**, not code:
+- The API 34/35 system images default to a **~7.2 GB userdata partition**
+  ("FATAL | Not enough space to create userdata partition … need 7372.80 MB")
+  and the runner image's preinstalled NDK + extra system images left only
+  ~6.5–7.2 GB free. Fix: delete `/usr/local/lib/android/sdk/ndk/*`,
+  `system-images/*` (before installing the one this leg needs), `sources/*`,
+  `skins/*` — then all three API levels boot and pass.
+- `device-tests.yml` no longer uses `reactivecircus/android-emulator-runner`; it
+  boots the emulator manually with **up to 3 retries** and surfaces the emulator
+  log tail as annotations on failure (GitHub caps annotations at 10/step — keep
+  the tail short so the actual FATAL line survives).
+- Runners pinned to `ubuntu-22.04`; emulator flags `-no-snapshot
+  -feature -Vulkan -feature GLDirectMem -partition-size 2048`; `libpulse0`
+  installed (emulator 37's qemu links it); AVD config sets
+  `disk.dataPartition.size=2g`, `hw.ramSize=2048`.
+- Emulator `-version` prints to **stderr**; capture with `2>&1`.
+- `gh run rerun` / `workflow_dispatch` are not permitted for this token —
+  retrigger by pushing.
 
 ## Pending / next steps
 - [x] CI green on Verify + Device tests (API 30/34/35).
