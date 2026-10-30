@@ -98,19 +98,27 @@ epoch-ms). The previous clean-room implementation (removed in this session) had:
 | 12 | Offline, no broad storage, Room KSP schemas | manifest (no network perms), CI permission allowlist, `app/schemas/` |
 
 ## Verification status
-- Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **11 tests pass**.
-- **CI green** on branch `arena/85a2efc2-snapttl` @ `caffd76`:
-  - **Verify** ✓ — clean-room Python mirror, Robolectric unit
-    tests (SDK 30/34/35, hermetic apps), lint (0 errors), Room schema export,
-    debug APK build, and the packaged-permission audit (exact 11-permission
-    allowlist, `INTERNET`/`ACCESS_NETWORK_STATE` stripped via
-    `tools:node="remove"` from the ML Kit manifests).
-  - **Device tests** run `41088973940` ✓ — connected tests on Android 11 / 14 / 15
-    emulators (AppLaunch, ScreenshotRepository, ExpiryPipeline incl. the
-    cancelled-timer regression) after the emulator disk fix.
-- Room schemas exported and **committed** to `app/schemas/` by the
-  `export-schemas.yml` workflow (runs on data-layer pushes to the working
-  branch + main, commits the KSP-generated JSONs back).
+- Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **11 tests pass**
+  (updated for the duration model).
+- **Round 2 (free app + durations + popup fix) fully green on `main`** @ `b69d7f2`
+  (PR #5 + #6): Verify `41109855494` ✓, Device tests `41109855811` ✓ (Android
+  11/14/15), Build APK `41109855435` ✓, Export Room schemas ✓.
+- **Signed release v0.1.0 published** (run `41109873781` ✓) — release "SnapTTL
+  v0.1.0" carries `app-release.apk` signed with the user's keystore
+  (`SNAPTTL_KEYSTORE_*` secrets). Note: `gh release upload` requires the release
+  to exist; the workflow now creates it with `--generate-notes` when missing.
+
+## Pending / next steps
+- [x] CI green on Verify + Device tests (API 30/34/35).
+- [x] Room schema JSONs committed to `app/schemas/`.
+- [x] Build APK workflow green — unsigned artifacts on every main push.
+- [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2) merged; main fully green.
+- [x] Signed release v0.1.0 tagged and published with the signed APK attached.
+- [ ] User re-tests the **signed** APK on the Android 16 device: popup after
+      screenshot (needs "Display over other apps"), custom durations via the
+      stepper, date/time path, and the notification fallback when the overlay
+      permission is off.
+- [ ] If the ad-refill idea is revived, see "Deferred monetization option" above.
 
 ## Late-stage fixes found by CI
 - `backup_rules.xml`: a redundant `<exclude>` next to an `<include>` is a
@@ -146,7 +154,7 @@ workflow-emitted annotations to **runner disk pressure**, not code:
 - `gh run rerun` / `workflow_dispatch` are not permitted for this token —
   retrigger by pushing.
 
-## Pending / next steps
+## Round-1 close-out (superseded by the status above)
 - [x] CI green on Verify + Device tests (API 30/34/35).
 - [x] Room schema JSONs committed to `app/schemas/`.
 - [x] Build APK workflow green — artifacts `snapttl-release-apk` (unsigned) +
@@ -154,5 +162,4 @@ workflow-emitted annotations to **runner disk pressure**, not code:
 - [x] PR #2 merged to main; **main is fully green**: Verify `41069286967` ✓,
       Device tests `41069286937` ✓, Build APK `41069286895` ✓,
       Export Room schemas `41069286974` ✓.
-- [ ] Tag `v0.1.0` only if a signed release is wanted (needs
-      `SNAPTTL_KEYSTORE_*` secrets).
+- [x] Tag `v0.1.0` — signed release published (see Verification status).
