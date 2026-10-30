@@ -2,7 +2,7 @@ package dev.snapttl.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingItemBehavior
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,7 +75,7 @@ fun DurationSlider(
 /**
  * A scroll-wheel picker column (iOS/Cupertino style): items snap to the
  * centre; the centred item is the selection. Built on LazyColumn +
- * [rememberSnapFlingItemBehavior] so it flings naturally and works inside
+ * [rememberSnapFlingBehavior] so it flings naturally and works inside
  * the overlay window.
  *
  * @param items labels to show, in order.
@@ -119,7 +119,7 @@ fun WheelColumn(
     ) {
         LazyColumn(
             state = state,
-            flingBehavior = rememberSnapFlingItemBehavior(lazyListState = state),
+            flingBehavior = rememberSnapFlingBehavior(lazyListState = state),
             contentPadding = PaddingValues(vertical = itemHeight),
             modifier = Modifier.fillMaxSize()
         ) {

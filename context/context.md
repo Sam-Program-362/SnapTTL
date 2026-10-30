@@ -86,7 +86,7 @@ how this round answers each:
    one gesture, every position is a real duration, confirm button can never
    be disabled. The in-app add/edit dialog uses the same control. Date/time
    mode uses three **`WheelColumn`s** (LazyColumn +
-   `rememberSnapFlingItemBehavior`, Cupertino-style snap wheels) for
+   `rememberSnapFlingBehavior(lazyListState)`, Cupertino-style snap wheels) for
    days/hours/minutes.
 7. **First-time-user empathy** — icon actions have contentDescriptions, the
    slider shows its "5 s"/"7 d" ends, `duration_preview` ("Deletes in …")
