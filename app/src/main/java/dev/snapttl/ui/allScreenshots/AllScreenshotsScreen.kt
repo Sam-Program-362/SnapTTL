@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -21,10 +23,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import dev.snapttl.R
 import dev.snapttl.data.repository.ScreenshotMedia
+import dev.snapttl.domain.TimeChips
 import dev.snapttl.domain.TimeUtils
 import dev.snapttl.ui.LocalSnapTtlFactory
 
@@ -36,30 +44,57 @@ fun AllScreenshotsScreen() {
     Scaffold { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("All screenshots", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                OutlinedButton(onClick = viewModel::refresh) { Text("Refresh") }
+                Text(
+                    stringResource(R.string.screenshots_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedButton(onClick = viewModel::refresh) {
+                    Text(stringResource(R.string.screenshots_refresh))
+                }
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                "Long-press items to select several, then set timers, cancel timers or delete.",
+                stringResource(R.string.screenshots_select_hint),
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(8.dp))
             if (state.selected.isNotEmpty()) {
                 Card {
-                    Row(modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${state.selected.size} selected", modifier = Modifier.weight(1f))
-                        OutlinedButton(onClick = { viewModel.scheduleForSelected(15) }) { Text("15m") }
-                        OutlinedButton(onClick = { viewModel.scheduleForSelected(45) }) { Text("45m") }
-                        OutlinedButton(onClick = viewModel::cancelTimersForSelected) { Text("Cancel timers") }
-                        Button(onClick = viewModel::deleteSelected) { Text("Delete") }
+                    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                stringResource(R.string.screenshots_selected, state.selected.size),
+                                modifier = Modifier.weight(1f)
+                            )
+                            state.allowedChips.take(3).forEach { chip ->
+                                OutlinedButton(onClick = { viewModel.scheduleForSelected(chip) }) {
+                                    Text(TimeChips.label(chip))
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(onClick = viewModel::cancelTimersForSelected) {
+                                Text(stringResource(R.string.screenshots_bulk_cancel))
+                            }
+                            Button(onClick = viewModel::deleteSelected) {
+                                Text(stringResource(R.string.screenshots_bulk_delete))
+                            }
+                        }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
             }
             if (state.items.isEmpty()) {
-                Text("No screenshots found on this device.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.screenshots_empty), style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(state.items, key = { it.id }) { media ->
@@ -70,6 +105,7 @@ fun AllScreenshotsScreen() {
                             onToggle = { viewModel.toggleSelected(media.id) }
                         )
                     }
+                    item { Spacer(Modifier.height(24.dp)) }
                 }
             }
         }
@@ -88,15 +124,29 @@ private fun ScreenshotRow(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(checked = selected, onCheckedChange = { onToggle() })
+            AsyncImage(
+                model = media.uri,
+                contentDescription = media.displayName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            )
+            Spacer(Modifier.size(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(media.displayName, style = MaterialTheme.typography.bodyMedium)
+                Text(media.displayName, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 Text(
                     "${TimeUtils.formatFileSize(media.sizeBytes)} · ${TimeUtils.formatDateTime(media.dateTakenMs)}",
                     style = MaterialTheme.typography.bodySmall
                 )
-                if (scheduled) Text("Scheduled for deletion", style = MaterialTheme.typography.bodySmall)
+                if (scheduled) {
+                    Text(
+                        stringResource(R.string.screenshots_scheduled),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
+            Checkbox(checked = selected, onCheckedChange = { onToggle() })
         }
     }
 }

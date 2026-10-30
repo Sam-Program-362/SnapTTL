@@ -1,0 +1,55 @@
+name: Export Room schemas
+
+# One-shot helper: regenerates the exported Room schema JSONs (written by KSP
+# into app/schemas/) and commits them back to the branch this was dispatched
+# on, so migrations stay reviewable in Git instead of living only in CI
+# artifacts.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - arena/85a2efc2-snapttl
+    paths:
+      - 'app/src/main/java/dev/snapttl/data/**'
+      - 'app/build.gradle.kts'
+
+permissions:
+  contents: write
+
+jobs:
+  export-and-commit:
+    name: Export schemas → commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the dispatching branch
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run KSP schema export
+        run: |
+          ./gradlew :app:kspDebugKotlin --no-daemon --console=plain
+          test -f app/schemas/dev.snapttl.data.expiry.ExpiryDatabase/1.json
+          test -f app/schemas/dev.snapttl.data.search.SearchIndexDatabase/1.json
+          ls -1 app/schemas/*/
+
+      - name: Commit schemas if changed
+        run: |
+          git config user.name "schema-export-bot"
+          git config user.email "actions@github.com"
+          git add app/schemas
+          if git diff --cached --quiet; then
+            echo "No schema changes to commit."
+          else
+            git commit -m "Export Room schemas (KSP-generated)"
+            git push
+            echo "Committed and pushed schema export."
+          fi

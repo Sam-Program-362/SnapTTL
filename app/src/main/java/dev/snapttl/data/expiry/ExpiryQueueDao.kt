@@ -15,8 +15,14 @@ interface ExpiryQueueDao {
     @Query("SELECT * FROM expiry_queue_item ORDER BY createdAtEpochMillis DESC")
     fun observeAll(): Flow<List<ExpiryQueueItem>>
 
+    @Query("SELECT * FROM expiry_queue_item ORDER BY createdAtEpochMillis DESC")
+    suspend fun observeAllSnapshot(): List<ExpiryQueueItem>
+
     @Query("SELECT * FROM expiry_queue_item WHERE id = :id")
     suspend fun findById(id: Long): ExpiryQueueItem?
+
+    @Query("SELECT * FROM expiry_queue_item WHERE workManagerId = :workManagerId LIMIT 1")
+    suspend fun findByWorkManagerId(workManagerId: String): ExpiryQueueItem?
 
     @Query("SELECT * FROM expiry_queue_item WHERE screenshotId = :screenshotId LIMIT 1")
     suspend fun findByScreenshotId(screenshotId: Long): ExpiryQueueItem?

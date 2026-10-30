@@ -13,13 +13,15 @@ import dev.snapttl.ui.settings.SettingsViewModel
 /** Manual dependency injection for the Compose screens. */
 class ViewModelFactory(private val services: Services) : ViewModelProvider.Factory {
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
             modelClass.isAssignableFrom(HomeViewModel::class.java) -> HomeViewModel(services) as T
             modelClass.isAssignableFrom(ScheduledViewModel::class.java) -> ScheduledViewModel(services) as T
             modelClass.isAssignableFrom(AllScreenshotsViewModel::class.java) ->
                 AllScreenshotsViewModel(services) as T
-            modelClass.isAssignableFrom(SearchViewModel::class.java) -> SearchViewModel(services) as T
+            modelClass.isAssignableFrom(SearchViewModel::class.java) ->
+                SearchViewModel(services.context as android.app.Application, services) as T
             modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(services) as T
             else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
         }

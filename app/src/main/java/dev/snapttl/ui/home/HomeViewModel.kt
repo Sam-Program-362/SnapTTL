@@ -3,7 +3,10 @@ package dev.snapttl.ui.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.snapttl.data.repository.ScreenshotMedia
 import dev.snapttl.di.Services
+import dev.snapttl.domain.EntitlementState
+import dev.snapttl.domain.TimeChips
 import dev.snapttl.service.CaptureMonitorService
 import dev.snapttl.ui.common.Permissions
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +20,13 @@ data class PermissionUi(val name: String, val granted: Boolean)
 data class HomeUiState(
     val serviceEnabled: Boolean = true,
     val permissions: List<PermissionUi> = emptyList(),
-    val timeChips: List<Int> = emptyList(),
+    val armedChips: List<Long> = emptyList(),
+    val allowedChips: List<Long> = emptyList(),
     val premiumPurchased: Boolean = false,
     val refillDaysLeft: Int = 0,
     val totalDeleted: Long = 0,
-    val totalSaved: Long = 0
+    val totalSaved: Long = 0,
+    val recent: List<ScreenshotMedia> = emptyList()
 )
 
 class HomeViewModel(private val services: Services) : ViewModel() {
@@ -35,16 +40,24 @@ class HomeViewModel(private val services: Services) : ViewModel() {
 
     fun refresh() {
         val context: Context = services.context
+        val entitlement = entitlement()
+        val now = System.currentTimeMillis()
         _uiState.update {
             HomeUiState(
                 serviceEnabled = services.prefs.serviceEnabled,
                 permissions = Permissions.required(context).map { PermissionUi(it, Permissions.isGranted(context, it)) },
-                timeChips = services.prefs.timeChips,
+                armedChips = services.prefs.timeChips,
+                allowedChips = TimeChips.allowed(entitlement.hasUnlockedFeatures(now)),
                 premiumPurchased = services.prefs.havePremiumPurchased,
-                refillDaysLeft = refillDaysLeft(),
+                refillDaysLeft = entitlement.refillDaysLeft(now),
                 totalDeleted = services.prefs.totalScreenshotsDeleted,
-                totalSaved = services.prefs.totalMemorySavedBytes
+                totalSaved = services.prefs.totalMemorySavedBytes,
+                recent = it.recent
             )
+        }
+        viewModelScope.launch {
+            val recent = services.screenshotRepo.queryScreenshots().take(10)
+            _uiState.update { it.copy(recent = recent) }
         }
     }
 
@@ -59,6 +72,28 @@ class HomeViewModel(private val services: Services) : ViewModel() {
         refresh()
     }
 
+    /**
+     * Arms or disarms a duration chip. Free users may only arm the free chips;
+     * advanced chips require premium or an active refill.
+     */
+    fun toggleChip(seconds: Long) {
+        val entitlement = entitlement()
+        val now = System.currentTimeMillis()
+        val allowed = TimeChips.allowed(entitlement.hasUnlockedFeatures(now))
+        if (seconds !in allowed) return
+
+        val current = services.prefs.timeChips.toMutableList()
+        if (seconds in current) {
+            if (current.size > 1) current.remove(seconds) // keep at least one chip armed
+        } else {
+            current.add(seconds)
+        }
+        val next = current.sorted()
+        services.prefs.timeChips = next
+        services.commonState.update { it.copy(timeChips = next) }
+        refresh()
+    }
+
     fun openOverlaySettings() {
         val intent = android.content.Intent("android.settings.action.MANAGE_OVERLAY_PERMISSION")
             .setData(android.net.Uri.parse("package:" + services.context.packageName))
@@ -66,9 +101,9 @@ class HomeViewModel(private val services: Services) : ViewModel() {
         services.context.startActivity(intent)
     }
 
-    private fun refillDaysLeft(): Int {
-        val expiry = services.prefs.refillExpiryEpochMs
-        if (expiry <= 0L) return 0
-        return ((expiry - System.currentTimeMillis()) / 86_400_000L).coerceIn(0L, 40L).toInt()
-    }
+    private fun entitlement() = EntitlementState(
+        premiumPurchased = services.prefs.havePremiumPurchased,
+        adsRemoved = services.prefs.haveAdsRemoved,
+        refillExpiryEpochMs = services.prefs.refillExpiryEpochMs
+    )
 }

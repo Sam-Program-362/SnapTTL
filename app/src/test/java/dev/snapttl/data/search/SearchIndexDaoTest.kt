@@ -14,8 +14,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [30, 34, 35], application = SearchIndexDaoTest.HermeticApp::class)
 class SearchIndexDaoTest {
+
+    /**
+     * Plain Application: these suites only need a Context for an in-memory Room DB.
+     * Keeping SnapTtlApp out keeps them independent of WorkManager sandbox state
+     * (Robolectric re-creates the app per method while WorkManager statics persist).
+     */
+    class HermeticApp : android.app.Application()
 
     private lateinit var database: SearchIndexDatabase
     private lateinit var dao: SearchIndexDao
@@ -39,7 +46,7 @@ class SearchIndexDaoTest {
 
         assertEquals(listOf(102L), dao.search("Boarding Pass"))
         assertEquals(listOf(101L), dao.search("Receipt"))
-        assertEquals(emptyList(), dao.search("nothing"))
+        assertEquals(emptyList<Long>(), dao.search("nothing"))
         assertEquals(listOf(101L, 102L), dao.indexedAmong(listOf(101L, 102L, 103L)).sorted())
     }
 

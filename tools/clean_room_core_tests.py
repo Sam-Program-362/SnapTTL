@@ -79,12 +79,47 @@ class EntitlementState:
         )
         return self.refill_days_left(now_ms)
 
+    def is_valid_deletion_schedule_seconds(self, seconds: int, now_ms: int) -> bool:
+        if seconds <= 0:
+            return False
+        if self.has_unlocked_features(now_ms):
+            return True
+        return self.FREE_MIN_MINUTES * 60 <= seconds <= self.FREE_MAX_MINUTES * 60
+
     def is_valid_deletion_schedule(self, value: int, unit: str, now_ms: int) -> bool:
         if value <= 0 or unit == TimeUnit.NONE:
             return False
         if self.has_unlocked_features(now_ms):
             return True
         return unit == TimeUnit.MINUTES and self.FREE_MIN_MINUTES <= value <= self.FREE_MAX_MINUTES
+
+
+# ---------------------------------------------------------------- time chips
+FREE_CHIPS = [15 * 60, 45 * 60]                      # seconds
+ADVANCED_CHIPS = [30, 5 * 60, 30 * 60, 3 * 86_400]   # 30s, 5m, 30m, 3d
+
+
+def allowed_chips(unlocked: bool) -> List[int]:
+    return list(FREE_CHIPS + ADVANCED_CHIPS) if unlocked else list(FREE_CHIPS)
+
+
+def chip_label(seconds: int) -> str:
+    if seconds >= 86_400 and seconds % 86_400 == 0:
+        return f"{seconds // 86_400}d"
+    if seconds >= 3_600 and seconds % 3_600 == 0:
+        return f"{seconds // 3_600}h"
+    if seconds >= 60 and seconds % 60 == 0:
+        return f"{seconds // 60}m"
+    return f"{seconds}s"
+
+
+def is_valid_deletion_schedule_seconds(seconds: int, entitlement, now: int) -> bool:
+    """Mirror of EntitlementState.isValidDeletionScheduleSeconds."""
+    if seconds <= 0:
+        return False
+    if entitlement.has_unlocked_features(now):
+        return True
+    return 15 * 60 <= seconds <= 45 * 60
 
 
 # ---------------------------------------------------------------- OCR/label search
@@ -229,6 +264,31 @@ class CleanRoomCoreTests(unittest.TestCase):
         s = EntitlementState(premium_purchased=True)
         now = 1_700_000_000_000
         self.assertTrue(s.is_valid_deletion_schedule(1, TimeUnit.DAYS, now))
+
+    def test_time_chips(self):
+        self.assertEqual(FREE_CHIPS, [900, 2700])
+        self.assertEqual(ADVANCED_CHIPS, [30, 300, 1800, 259_200])
+        self.assertEqual(allowed_chips(False), [900, 2700])
+        self.assertEqual(len(allowed_chips(True)), 6)
+        self.assertEqual(chip_label(30), "30s")
+        self.assertEqual(chip_label(900), "15m")
+        self.assertEqual(chip_label(7_200), "2h")
+        self.assertEqual(chip_label(259_200), "3d")
+
+    def test_free_tier_seconds_validation(self):
+        s = EntitlementState()
+        now = 1_700_000_000_000
+        self.assertTrue(s.is_valid_deletion_schedule_seconds(900, now))
+        self.assertTrue(s.is_valid_deletion_schedule_seconds(2_700, now))
+        self.assertFalse(s.is_valid_deletion_schedule_seconds(899, now))
+        self.assertFalse(s.is_valid_deletion_schedule_seconds(30, now))
+        self.assertFalse(s.is_valid_deletion_schedule_seconds(259_200, now))
+
+    def test_unlocked_seconds_validation(self):
+        s = EntitlementState(refill_expiry_epoch_ms=1_700_000_000_000 + 20 * 86_400_000)
+        now = 1_700_000_000_000
+        self.assertTrue(s.is_valid_deletion_schedule_seconds(30, now))
+        self.assertTrue(s.is_valid_deletion_schedule_seconds(259_200, now))
 
     def test_ocr_and_label_search(self):
         engine = MarkPersistenceEngine()

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Only the retained counters survive backup; app_preferences (toggles, entitlements)
+     is deliberately excluded by including just the retain file. -->
 <full-backup-content>
-    <exclude domain="sharedpref" path="app_preferences.xml" />
     <include domain="sharedpref" path="retain_app_preferences.xml" />
 </full-backup-content>

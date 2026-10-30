@@ -14,6 +14,9 @@ enum class DeletionOutcome { DELETED, FAILED }
 /**
  * MediaStore screenshot discovery plus dual-method deletion (persistent SAF tree
  * first, MediaStore fallback), reconstructed from Mark's capture pipeline.
+ *
+ * All queries funnel through [ScreenshotFilter]; anything it rejects (pending,
+ * trashed, deleted, dot-prefixed, non-screenshot names) is invisible here.
  */
 class ScreenshotRepository(
     private val context: Context,
@@ -100,8 +103,11 @@ class ScreenshotRepository(
         var docUri: Uri? = null
         resolver.query(
             childrenUri,
-            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
-            null,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME
+            ),
+            "${DocumentsContract.Document.COLUMN_DISPLAY_NAME} = ?",
             arrayOf(item.displayName),
             null
         )?.use { cursor ->

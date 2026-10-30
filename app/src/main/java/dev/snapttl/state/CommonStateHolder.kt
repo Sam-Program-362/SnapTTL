@@ -10,7 +10,7 @@ data class CommonState(
     val premiumPurchased: Boolean = false,
     val adsRemoved: Boolean = false,
     val refillDaysLeft: Int = 0,
-    val timeChips: List<Int> = emptyList(),
+    val timeChips: List<Long> = emptyList(),
     val noDialogAutoDelete: Boolean = false
 )
 

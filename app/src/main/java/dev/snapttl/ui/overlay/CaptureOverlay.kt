@@ -37,18 +37,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.snapttl.R
 import dev.snapttl.SnapTtlApp
-import dev.snapttl.data.expiry.ExpiryQueueItem
 import dev.snapttl.data.repository.ScreenshotMedia
-import dev.snapttl.domain.EntitlementState
-import dev.snapttl.domain.TimeUnit
+import dev.snapttl.domain.TimeChips
 import dev.snapttl.domain.TimeUtils
+import dev.snapttl.service.CaptureActions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -66,13 +65,14 @@ fun CaptureOverlay(
     val services = (context.applicationContext as SnapTtlApp).services
     val scope = rememberCoroutineScope()
 
-    val chips = remember {
-        services.prefs.timeChips.ifEmpty { EntitlementState.FREE_TIME_CHIPS }
-    }
+    val chips = remember { services.prefs.timeChips.ifEmpty { TimeChips.FREE } }
+    val defaultChip = chips.firstOrNull() ?: TimeChips.FREE.first()
 
     var media by remember { mutableStateOf<ScreenshotMedia?>(null) }
     var remainingMs by remember { mutableLongStateOf(0L) }
+    var totalMs by remember { mutableLongStateOf(0L) }
     var hasTimer by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
 
     LaunchedEffect(screenshotId) {
         media = services.screenshotRepo.findScreenshot(screenshotId)
@@ -83,6 +83,7 @@ fun CaptureOverlay(
             val item = services.expiryRepo.findByScreenshot(screenshotId)
             if (item != null) {
                 remainingMs = (item.deleteTimeEpochMs - System.currentTimeMillis()).coerceAtLeast(0L)
+                totalMs = (item.deleteTimeEpochMs - item.createdAtEpochMillis).coerceAtLeast(1L)
                 hasTimer = true
             }
             delay(1000)
@@ -99,13 +100,13 @@ fun CaptureOverlay(
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = displayName.ifBlank { "New screenshot" },
+                    text = displayName.ifBlank { stringResource(R.string.overlay_new_screenshot) },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.overlay_close))
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -123,16 +124,15 @@ fun CaptureOverlay(
             if (hasTimer) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = context.getString(R.string.overlay_delete_in, TimeUtils.formatCountdown(remainingMs)),
+                        text = stringResource(
+                            R.string.overlay_delete_in,
+                            TimeUtils.formatCountdown(remainingMs)
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f)
                     )
                     CircularProgressIndicator(
-                        progress = {
-                            val total = 60_000L
-                            val done = (total - remainingMs).coerceIn(0, total)
-                            done / total.toFloat()
-                        },
+                        progress = { (1f - remainingMs.toFloat() / totalMs).coerceIn(0f, 1f) },
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp
                     )
@@ -140,38 +140,48 @@ fun CaptureOverlay(
                 Spacer(Modifier.height(8.dp))
             } else {
                 Text(
-                    text = "Choose how long to keep it, or delete it right away.",
+                    text = stringResource(R.string.overlay_choose),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(Modifier.height(8.dp))
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                chips.forEach { minutes ->
-                    OutlinedButton(onClick = { scheduleDelete(scope, services, screenshotId, minutes) }) {
-                        Text(if (minutes < 60) "Delete in ${minutes}m" else "Delete in ${minutes / 60}h")
+                chips.forEach { seconds ->
+                    OutlinedButton(onClick = { scheduleDelete(scope, services, screenshotId, seconds) }) {
+                        Text(stringResource(R.string.overlay_delete_in_fmt, TimeChips.label(seconds)))
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { scheduleDelete(scope, services, screenshotId, chips.firstOrNull() ?: 15) },
+                    onClick = {
+                        deleting = true
+                        scope.launch {
+                            CaptureActions.deleteNow(services, screenshotId)
+                            deleting = false
+                            onDismiss()
+                        }
+                    },
+                    enabled = !deleting,
                     modifier = Modifier.weight(1f)
-                ) { Text("Delete now") }
+                ) { Text(stringResource(R.string.overlay_delete_now)) }
                 Button(
                     onClick = {
                         share(context, screenshotId)
-                        scheduleDelete(scope, services, screenshotId, chips.firstOrNull() ?: 15)
+                        scheduleDelete(scope, services, screenshotId, defaultChip)
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = "Share")
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.screenshots_bulk_share))
                     Spacer(Modifier.width(6.dp))
-                    Text("Share & delete")
+                    Text(stringResource(R.string.overlay_share_and_delete, TimeChips.label(defaultChip)))
                 }
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Keep") }
+                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.overlay_keep))
+                }
             }
         }
     }
@@ -181,19 +191,10 @@ private fun scheduleDelete(
     scope: kotlinx.coroutines.CoroutineScope,
     services: dev.snapttl.di.Services,
     screenshotId: Long,
-    minutes: Int
+    seconds: Long
 ) {
     scope.launch {
-        val now = System.currentTimeMillis()
-        val item = ExpiryQueueItem(
-            filePath = "",
-            deleteTimeEpochMs = now + minutes * 60_000L,
-            timeUnit = TimeUnit.MINUTES.name,
-            workManagerId = "snapttl_overlay_${screenshotId}_${now}",
-            createdAtEpochMillis = now,
-            screenshotId = screenshotId
-        )
-        services.expiryRepo.upsert(item)
+        services.expiryRepo.scheduleIn(screenshotId = screenshotId, durationSeconds = seconds)
     }
 }
 

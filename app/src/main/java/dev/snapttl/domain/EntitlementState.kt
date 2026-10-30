@@ -1,7 +1,7 @@
 package dev.snapttl.domain
 
 /** Units a user may choose for an auto-delete schedule. */
-enum class TimeUnit { MINUTES, HOURS, DAYS, NONE }
+enum class TimeUnit { SECONDS, MINUTES, HOURS, DAYS, NONE }
 
 /**
  * Freemium / rewarded-refill / one-time-premium entitlement state machine.
@@ -42,6 +42,18 @@ class EntitlementState(
         if (value <= 0 || unit == TimeUnit.NONE) return false
         if (hasUnlockedFeatures(nowMs)) return true
         return unit == TimeUnit.MINUTES && value in FREE_MIN_MINUTES..FREE_MAX_MINUTES
+    }
+
+    /**
+     * Chip-based validation used by the UI and the capture service. A free user may
+     * arm any duration between 15 and 45 minutes; premium/refill unlocks everything.
+     */
+    fun isValidDeletionScheduleSeconds(seconds: Long, nowMs: Long): Boolean {
+        if (seconds <= 0L) return false
+        if (hasUnlockedFeatures(nowMs)) return true
+        val min = FREE_MIN_MINUTES * 60L
+        val max = FREE_MAX_MINUTES * 60L
+        return seconds in min..max
     }
 
     companion object {

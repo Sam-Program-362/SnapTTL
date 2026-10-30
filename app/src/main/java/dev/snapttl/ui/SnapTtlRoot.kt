@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -54,7 +55,7 @@ fun SnapTtlRoot(services: Services) {
                         icon = {
                             Icon(
                                 imageVector = tabIcon(route),
-                                contentDescription = null
+                                contentDescription = tabLabel(route)
                             )
                         },
                         label = { Text(tabLabel(route)) }
@@ -96,9 +97,9 @@ private fun tabIcon(route: String) = when (route) {
 
 @Composable
 private fun tabLabel(route: String): String = when (route) {
-    Routes.HOME -> "Home"
-    Routes.SCHEDULED -> "Scheduled"
-    Routes.SCREENSHOTS -> "Screenshots"
-    Routes.SEARCH -> "Search"
-    else -> "Home"
+    Routes.HOME -> stringResource(dev.snapttl.R.string.nav_home)
+    Routes.SCHEDULED -> stringResource(dev.snapttl.R.string.nav_scheduled)
+    Routes.SCREENSHOTS -> stringResource(dev.snapttl.R.string.nav_screenshots)
+    Routes.SEARCH -> stringResource(dev.snapttl.R.string.nav_search)
+    else -> stringResource(dev.snapttl.R.string.nav_home)
 }

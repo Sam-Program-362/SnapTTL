@@ -1,5 +1,7 @@
 package dev.snapttl.ui.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -22,15 +25,20 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.snapttl.R
+import dev.snapttl.domain.TimeChips
 import dev.snapttl.language.AppLanguage
 import dev.snapttl.ui.LocalSnapTtlFactory
 
@@ -38,7 +46,21 @@ import dev.snapttl.ui.LocalSnapTtlFactory
 fun SettingsScreen() {
     val viewModel: SettingsViewModel = viewModel(factory = LocalSnapTtlFactory.current)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var languageExpanded by remember { mutableStateOf(false) }
+
+    // SAF screenshots-folder picker: the persistent tree grant makes silent
+    // deletion reliable on Android 11+ (MediaStore alone cannot delete
+    // system-owned screenshots).
+    val treePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri -> viewModel.setScreenshotFolder(uri) }
+
+    // A language change below Android 13 needs an activity recreation to apply.
+    val recreateTick by viewModel.recreate.collectAsStateWithLifecycle()
+    LaunchedEffect(recreateTick) {
+        if (recreateTick > 0) (context as? android.app.Activity)?.recreate()
+    }
 
     Scaffold { padding ->
         Column(
@@ -48,22 +70,99 @@ fun SettingsScreen() {
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text("Settings", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(12.dp))
 
             Card {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Screenshot monitor", modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.settings_service), modifier = Modifier.weight(1f))
                         Switch(checked = state.serviceEnabled, onCheckedChange = viewModel::toggleService)
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
 
+            // --- Permissions ---
             Card {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Language", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.settings_permissions), style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_overlay))
+                            Text(
+                                if (state.overlayPermissionGranted) stringResource(R.string.settings_overlay_granted)
+                                else stringResource(R.string.settings_overlay_missing),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (!state.overlayPermissionGranted) {
+                            Button(onClick = viewModel::openOverlaySettings) {
+                                Text(stringResource(R.string.home_missing))
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // --- Screenshots folder (SAF) ---
+            Card {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.settings_folder_title), style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.settings_folder_desc), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    if (state.screenshotFolderTreeUri != null) {
+                        Text(
+                            stringResource(R.string.settings_folder_current),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { treePicker.launch(null) }) {
+                            Text(stringResource(R.string.settings_folder_pick))
+                        }
+                        if (state.screenshotFolderTreeUri != null) {
+                            OutlinedButton(onClick = viewModel::clearScreenshotFolder) {
+                                Text(stringResource(R.string.settings_folder_clear))
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // --- Deletion durations ---
+            Card {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.settings_chips_title), style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.settings_chips_desc), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (TimeChips.FREE + TimeChips.ADVANCED).forEach { chip ->
+                            val allowed = chip in TimeChips.allowed(
+                                state.premiumPurchased || state.refillDaysLeft > 0
+                            )
+                            FilterChip(
+                                selected = chip in state.armedChips,
+                                enabled = allowed,
+                                onClick = { viewModel.toggleChip(chip) },
+                                label = { Text(TimeChips.label(chip)) }
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // --- Language ---
+            Card {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(4.dp))
                     TextField(
                         value = AppLanguage.fromCode(state.languageCode).displayName,
@@ -86,64 +185,91 @@ fun SettingsScreen() {
             }
             Spacer(Modifier.height(12.dp))
 
+            // --- Search index ---
             Card {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Silent auto-delete", modifier = Modifier.weight(1f))
-                    Switch(
-                        checked = state.silentAutoDelete,
-                        enabled = state.premiumPurchased,
-                        onCheckedChange = viewModel::setSilentAutoDelete
-                    )
-                    if (!state.premiumPurchased) {
-                        Text("Premium-only feature; not covered by a refill.",
-                            style = MaterialTheme.typography.bodySmall)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.settings_ocr))
+                            Text(stringResource(R.string.settings_ocr_desc), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(checked = state.ocrIndexEnabled, onCheckedChange = viewModel::setOcrIndexEnabled)
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
 
+            // --- Silent auto-delete (premium) ---
             Card {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Subscriptions", style = MaterialTheme.typography.titleSmall)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.extra_silent_auto_delete), modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = state.silentAutoDelete,
+                            enabled = state.premiumPurchased,
+                            onCheckedChange = viewModel::setSilentAutoDelete
+                        )
+                    }
+                    if (!state.premiumPurchased) {
+                        Text(
+                            stringResource(R.string.extra_silent_premium_only),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // --- Subscriptions ---
+            Card {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.settings_subscriptions), style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (state.premiumPurchased) {
-                            Text("Premium", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.settings_premium), style = MaterialTheme.typography.bodyMedium)
                         } else {
-                            Button(onClick = viewModel::buyPremium) { Text("Buy Premium") }
+                            Button(onClick = viewModel::buyPremium) {
+                                Text(stringResource(R.string.settings_buy_premium))
+                            }
                         }
                         if (state.adsRemoved) {
-                            Text("Ads removed", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.settings_ads_removed), style = MaterialTheme.typography.bodyMedium)
                         } else {
-                            OutlinedButton(onClick = viewModel::removeAds) { Text("Remove ads") }
+                            OutlinedButton(onClick = viewModel::removeAds) {
+                                Text(stringResource(R.string.settings_remove_ads))
+                            }
                         }
                     }
                     if (state.refillDaysLeft > 0) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Ad-refill active: ${state.refillDaysLeft} days left.")
+                        Text(stringResource(R.string.extra_refill_days, state.refillDaysLeft))
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = viewModel::applyRewardedRefill) {
-                        Text("Watch ad · +20 days refill")
+                        Text(stringResource(R.string.settings_refill))
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
 
+            // --- Auto-start ---
             Card {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Background auto-start", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.settings_autostart_title), style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(4.dp))
                     if (state.autoStartResolved) {
                         Text(
-                            "Aggressive battery killers may stop the monitor. Open the OEM auto-start screen to allow it.",
+                            stringResource(R.string.settings_autostart_desc),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = viewModel::openAutoStart) { Text("Open auto-start settings") }
+                        Button(onClick = viewModel::openAutoStart) {
+                            Text(stringResource(R.string.settings_autostart_open))
+                        }
                     } else {
                         Text(
-                            "No OEM auto-start routing is needed on this device.",
+                            stringResource(R.string.settings_autostart_none),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -151,7 +277,7 @@ fun SettingsScreen() {
             }
             Spacer(Modifier.height(24.dp))
             Text(
-                "SnapTTL ${state.versionName}",
+                stringResource(R.string.settings_about, state.versionName),
                 style = MaterialTheme.typography.bodySmall
             )
         }
