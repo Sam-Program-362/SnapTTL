@@ -57,6 +57,12 @@ jobs:
             --force --name ci_avd \
             --package "system-images;android-${{ matrix.api-level }};google_apis;x86_64" \
             --sdcard 512M
+          # Mirror android-emulator-runner's AVD tuning: the default userdata
+          # partition for API 34/35 images needs 7.4 GB, more than the runner
+          # disk allows ("Not enough space to create userdata partition").
+          AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+          printf 'hw.cpu.ncore=2\nhw.ramSize=2048\nhw.keyboard=yes\ndisk.dataPartition.size=2g\n' \
+            >> "$AVD_HOME/ci_avd.avd/config.ini"
 
       - name: Boot the emulator (up to 3 attempts)
         run: |
