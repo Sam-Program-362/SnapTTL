@@ -94,7 +94,10 @@ Android 14+ and 11+, and once sound, run an APK-building workflow.
 ## Pending / next steps
 - [x] CI green on Verify + Device tests (API 30/34/35).
 - [x] Room schema JSONs committed to `app/schemas/`.
-- [ ] Trigger `Build APK` workflow; confirm unsigned release APK artifact builds.
-- [x] Open PR to main, merge (see below).
+- [x] Build APK workflow green — artifacts `snapttl-release-apk` (unsigned) +
+      `snapttl-debug-apk` produced on main (run `41069286895`).
+- [x] PR #2 merged to main; **main is fully green**: Verify `41069286967` ✓,
+      Device tests `41069286937` ✓, Build APK `41069286895` ✓,
+      Export Room schemas `41069286974` ✓.
 - [ ] Tag `v0.1.0` only if a signed release is wanted (needs
       `SNAPTTL_KEYSTORE_*` secrets).
