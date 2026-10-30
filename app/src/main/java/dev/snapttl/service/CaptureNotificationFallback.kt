@@ -61,7 +61,7 @@ object CaptureNotificationFallback {
         // the notification can show, at least toast the way out.
         val canNotify = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             androidx.core.content.ContextCompat.checkSelfPermission(
-                context, dev.snapttl.ui.common.Permissions.POST_NOTIFICATIONS
+                context, dev.snapttl.ui.common.Permissions.NOTIFICATIONS
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (canNotify) {
             runCatching { manager.notify(id, notification) }
