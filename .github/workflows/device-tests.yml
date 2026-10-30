@@ -54,8 +54,10 @@ jobs:
             -camera-back none -no-snapshot-save
           script: |
             adb shell settings put global window_animation_scale 0
-            set -o pipefail
-            ./gradlew :app:connectedDebugAndroidTest --no-daemon --console=plain 2>&1 | tee /tmp/connected.log
+            ./gradlew :app:connectedDebugAndroidTest --no-daemon --console=plain > /tmp/connected.log 2>&1
+            code=$?
+            cat /tmp/connected.log
+            exit $code
 
       - name: Surface connected-test errors as annotations
         if: failure()

@@ -32,7 +32,11 @@ class MlKitScreenshotVision(private val context: Context) : ScreenshotVision {
             val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
             try {
                 val text = recognizer.process(image).awaitOrNull()?.text.orEmpty()
-                val labels = labeler.process(image).awaitOrNull()?.map { it.label }.orEmpty()
+                // ImageLabel exposes its string as `text` (getText()); there is no
+                // `label` member — that mismatch was the long-standing CI failure.
+                val labels = labeler.process(image).awaitOrNull()
+                    ?.map { it.text }
+                    .orEmpty()
                 ScreenshotVision.Result(text = text, labels = labels)
             } finally {
                 recognizer.close()
