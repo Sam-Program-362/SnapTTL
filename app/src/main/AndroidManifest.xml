@@ -64,12 +64,10 @@
             </intent-filter>
         </receiver>
 
-        <activity
-            android:name=".ui.overlay.CaptureOverlayActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:taskAffinity=""
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- Fallback-notification actions when the floating overlay cannot show. -->
+        <receiver
+            android:name=".service.CaptureActionReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

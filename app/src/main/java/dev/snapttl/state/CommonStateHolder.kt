@@ -7,17 +7,14 @@ import kotlinx.coroutines.flow.update
 
 data class CommonState(
     val serviceEnabled: Boolean = true,
-    val premiumPurchased: Boolean = false,
-    val adsRemoved: Boolean = false,
-    val refillDaysLeft: Int = 0,
-    val timeChips: List<Long> = emptyList(),
+    val autoDeleteDurationSeconds: Long = dev.snapttl.domain.DeletionDuration.DEFAULT_SECONDS,
     val noDialogAutoDelete: Boolean = false
 )
 
 /**
- * Process-wide, observable app state. Replaces Mark's `CommonStateHolder`
- * (Premium / Ads Removed / Refill Days Left / Time Chips) without depending on
- * Compose so services and workers can read it too.
+ * Process-wide, observable app state (service toggle, default deletion timer,
+ * silent auto-delete) without depending on Compose so services and workers can
+ * read it too.
  */
 class CommonStateHolder {
     private val _state = MutableStateFlow(CommonState())

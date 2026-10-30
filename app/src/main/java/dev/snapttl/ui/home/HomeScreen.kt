@@ -23,16 +23,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,9 +48,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import dev.snapttl.R
-import dev.snapttl.domain.TimeChips
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.domain.TimeUtils
 import dev.snapttl.ui.LocalSnapTtlFactory
+import dev.snapttl.ui.common.DurationPickerDialog
 import dev.snapttl.ui.common.Permissions
 
 @Composable
@@ -67,6 +69,19 @@ fun HomeScreen(
     val runtimeRequest = remember { Permissions.runtimeRequestList() }
 
     var easterEggTaps by remember { mutableIntStateOf(0) }
+    var showDurationPicker by remember { mutableStateOf(false) }
+
+    if (showDurationPicker) {
+        DurationPickerDialog(
+            title = stringResource(R.string.duration_default_title),
+            initialSeconds = state.defaultDurationSeconds,
+            onDismiss = { showDurationPicker = false },
+            onConfirm = { seconds ->
+                showDurationPicker = false
+                viewModel.setDefaultDuration(seconds)
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -142,27 +157,19 @@ fun HomeScreen(
             }
 
             Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.home_chips_title), style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.home_chips_hint), style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.allowedChips.forEach { chip ->
-                    FilterChip(
-                        selected = chip in state.armedChips,
-                        onClick = { viewModel.toggleChip(chip) },
-                        label = { Text(TimeChips.label(chip)) }
-                    )
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(stringResource(R.string.duration_default_title), style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.duration_default_desc), style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = { showDurationPicker = true }) {
+                        Text(stringResource(R.string.duration_picker_value, DeletionDuration.detailedLabel(state.defaultDurationSeconds)))
+                    }
                 }
             }
 
             Spacer(Modifier.height(12.dp))
-            if (state.premiumPurchased) {
-                Text(stringResource(R.string.home_premium_active), style = MaterialTheme.typography.bodySmall)
-            } else if (state.refillDaysLeft > 0) {
-                Text(stringResource(R.string.extra_refill_days, state.refillDaysLeft), style = MaterialTheme.typography.bodySmall)
-            }
-
             if (state.recent.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Text(stringResource(R.string.home_recent_title), style = MaterialTheme.typography.titleSmall)

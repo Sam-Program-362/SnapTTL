@@ -21,6 +21,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,14 +35,28 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import dev.snapttl.R
 import dev.snapttl.data.repository.ScreenshotMedia
-import dev.snapttl.domain.TimeChips
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.domain.TimeUtils
 import dev.snapttl.ui.LocalSnapTtlFactory
+import dev.snapttl.ui.common.DurationPickerDialog
 
 @Composable
 fun AllScreenshotsScreen() {
     val viewModel: AllScreenshotsViewModel = viewModel(factory = LocalSnapTtlFactory.current)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showDurationPicker by remember { mutableStateOf(false) }
+
+    if (showDurationPicker) {
+        DurationPickerDialog(
+            title = stringResource(R.string.screenshots_pick_time),
+            initialSeconds = state.defaultDurationSeconds,
+            onDismiss = { showDurationPicker = false },
+            onConfirm = { seconds ->
+                showDurationPicker = false
+                viewModel.scheduleForSelected(seconds)
+            }
+        )
+    }
 
     Scaffold { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
@@ -71,10 +88,18 @@ fun AllScreenshotsScreen() {
                                 stringResource(R.string.screenshots_selected, state.selected.size),
                                 modifier = Modifier.weight(1f)
                             )
-                            state.allowedChips.take(3).forEach { chip ->
-                                OutlinedButton(onClick = { viewModel.scheduleForSelected(chip) }) {
-                                    Text(TimeChips.label(chip))
-                                }
+                            OutlinedButton(onClick = { showDurationPicker = true }) {
+                                Text(stringResource(R.string.screenshots_pick_time))
+                            }
+                            OutlinedButton(onClick = {
+                                viewModel.scheduleForSelected(state.defaultDurationSeconds)
+                            }) {
+                                Text(
+                                    stringResource(
+                                        R.string.screenshots_delete_in,
+                                        DeletionDuration.label(state.defaultDurationSeconds)
+                                    )
+                                )
                             }
                         }
                         Spacer(Modifier.height(4.dp))

@@ -14,10 +14,10 @@ import android.os.Looper
 import android.provider.MediaStore
 import dev.snapttl.R
 import dev.snapttl.di.Services
-import dev.snapttl.domain.EntitlementState
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.domain.ScreenshotFilter
 import dev.snapttl.domain.TimeUtils
-import dev.snapttl.ui.overlay.CaptureOverlayActivity
+import dev.snapttl.ui.overlay.CaptureOverlayWindows
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -111,24 +111,29 @@ class CaptureMonitorService : Service() {
 
         services.analytics.logEvent("screenshot_taken_no_filter", mapOf("full_file_path_no_filter" to info.path))
 
-        val state = services.commonState.snapshot()
-        val ent = EntitlementState(
-            premiumPurchased = state.premiumPurchased || services.prefs.havePremiumPurchased,
-            adsRemoved = state.adsRemoved || services.prefs.haveAdsRemoved,
-            refillExpiryEpochMs = services.prefs.refillExpiryEpochMs
-        )
-
-        if (services.prefs.noDialogAutoDeleteEnabled && ent.hasUnlockedFeatures(now)) {
-            val seconds = state.timeChips.firstOrNull()
-                ?: services.prefs.timeChips.firstOrNull()
-                ?: dev.snapttl.domain.TimeChips.FREE.first()
-            if (ent.isValidDeletionScheduleSeconds(seconds, now)) {
+        if (services.prefs.noDialogAutoDeleteEnabled) {
+            val seconds = services.prefs.autoDeleteDurationSeconds
+            if (DeletionDuration.isValidSeconds(seconds)) {
                 scheduleDeletion(info.id, info.path, seconds)
-            } else {
-                CaptureOverlayActivity.start(this, info.id, info.displayName)
+                return
             }
-        } else {
-            CaptureOverlayActivity.start(this, info.id, info.displayName)
+        }
+
+        // Floating delete-timer. Rendered as a WindowManager overlay window —
+        // launching an Activity from the background is silently blocked on
+        // modern Android (verified on Android 16) even with
+        // SYSTEM_ALERT_WINDOW granted.
+        val defaultSeconds = services.prefs.autoDeleteDurationSeconds
+        val shown = CaptureOverlayWindows.show(
+            context = this,
+            screenshotId = info.id,
+            displayName = info.displayName,
+            defaultSeconds = defaultSeconds
+        )
+        if (!shown) {
+            // No overlay permission (or the window was rejected): fall back to
+            // a heads-up notification with direct actions.
+            CaptureNotificationFallback.show(this, info.id, info.displayName, defaultSeconds)
         }
     }
 

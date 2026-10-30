@@ -23,22 +23,6 @@ class PrefsManager(context: Context) {
         get() = app.getString(KEY_LANGUAGE, "system") ?: "system"
         set(value) = app.edit().putString(KEY_LANGUAGE, value).apply()
 
-    var havePremiumPurchased: Boolean
-        get() = app.getBoolean(KEY_PREMIUM, false)
-        set(value) = app.edit().putBoolean(KEY_PREMIUM, value).apply()
-
-    var haveAdsRemoved: Boolean
-        get() = app.getBoolean(KEY_ADS_REMOVED, false)
-        set(value) = app.edit().putBoolean(KEY_ADS_REMOVED, value).apply()
-
-    var refillExpiryEpochMs: Long
-        get() = app.getLong(KEY_REFILL_EXPIRY, 0L)
-        set(value) = app.edit().putLong(KEY_REFILL_EXPIRY, value).apply()
-
-    var timeTillNoAdsEpochMs: Long
-        get() = app.getLong(KEY_TIME_TILL_NO_ADS, 0L)
-        set(value) = app.edit().putLong(KEY_TIME_TILL_NO_ADS, value).apply()
-
     var noDialogAutoDeleteEnabled: Boolean
         get() = app.getBoolean(KEY_NO_DIALOG_AUTO_DELETE, false)
         set(value) = app.edit().putBoolean(KEY_NO_DIALOG_AUTO_DELETE, value).apply()
@@ -47,16 +31,18 @@ class PrefsManager(context: Context) {
         get() = app.getString(KEY_SCREENSHOT_TREE_URI, null)
         set(value) = app.edit().putString(KEY_SCREENSHOT_TREE_URI, value).apply()
 
-    /** Armed deletion chips, in seconds (see [dev.snapttl.domain.TimeChips]). */
-    var timeChips: List<Long>
+    /**
+     * The user's default deletion timer, in seconds — the starting point for the
+     * floating overlay and the duration used by silent auto-delete.
+     * See [dev.snapttl.domain.DeletionDuration].
+     */
+    var autoDeleteDurationSeconds: Long
         get() {
-            val raw = app.getString(KEY_TIME_CHIPS_SECONDS, null) ?: return TimeChipsDefaults.FREE
-            val parsed = dev.snapttl.domain.TimeChips.decode(raw)
-            return parsed.ifEmpty { TimeChipsDefaults.FREE }
+            val value = app.getLong(KEY_AUTO_DELETE_DURATION, DeletionDurationDefaults.DEFAULT)
+            return if (dev.snapttl.domain.DeletionDuration.isValidSeconds(value)) value
+            else DeletionDurationDefaults.DEFAULT
         }
-        set(value) = app.edit()
-            .putString(KEY_TIME_CHIPS_SECONDS, dev.snapttl.domain.TimeChips.encode(value))
-            .apply()
+        set(value) = app.edit().putLong(KEY_AUTO_DELETE_DURATION, value).apply()
 
     /** Whether the on-device OCR/label index may run in the background. */
     var ocrIndexEnabled: Boolean
@@ -79,20 +65,16 @@ class PrefsManager(context: Context) {
 
         const val KEY_SERVICE_ENABLED = "service_enabled"
         const val KEY_LANGUAGE = "language"
-        const val KEY_PREMIUM = "have_premium_purchased"
-        const val KEY_ADS_REMOVED = "have_ads_removed"
-        const val KEY_REFILL_EXPIRY = "refill_expiry_date"
-        const val KEY_TIME_TILL_NO_ADS = "time_till_no_ads"
         const val KEY_NO_DIALOG_AUTO_DELETE = "no_dialog_auto_delete_enabled"
         const val KEY_SCREENSHOT_TREE_URI = "screenshot_folder_tree_uri"
-        const val KEY_TIME_CHIPS_SECONDS = "time_chips_seconds"
+        const val KEY_AUTO_DELETE_DURATION = "auto_delete_duration_seconds"
         const val KEY_OCR_INDEX_ENABLED = "ocr_index_enabled"
 
         const val RETAIN_DELETED = "total_screenshots_deleted"
         const val RETAIN_MEMORY = "total_memory_saved"
     }
 
-    private object TimeChipsDefaults {
-        val FREE = dev.snapttl.domain.TimeChips.FREE
+    private object DeletionDurationDefaults {
+        val DEFAULT = dev.snapttl.domain.DeletionDuration.DEFAULT_SECONDS
     }
 }

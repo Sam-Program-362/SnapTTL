@@ -6,7 +6,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import dev.snapttl.data.expiry.ExpiryQueueDao
 import dev.snapttl.data.expiry.ExpiryQueueItem
-import dev.snapttl.domain.TimeChips
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.worker.ExpiryPurgeWorker
 import kotlinx.coroutines.flow.Flow
 import java.util.concurrent.TimeUnit as JavaTimeUnit
@@ -41,7 +41,7 @@ class ExpiryRepository(
         cancelByScreenshot(screenshotId)
 
         val now = System.currentTimeMillis()
-        val (value, unit) = TimeChips.unitAndValue(durationSeconds)
+        val (value, unit) = DeletionDuration.unitAndValue(durationSeconds)
         val item = ExpiryQueueItem(
             filePath = filePath,
             deleteTimeEpochMs = deleteTimeEpochMs,
@@ -69,6 +69,21 @@ class ExpiryRepository(
             deleteTimeEpochMs = System.currentTimeMillis() + durationSeconds * 1_000L,
             durationSeconds = durationSeconds
         )
+
+    /** Convenience for "delete at this exact moment" (the date/time picker path). */
+    suspend fun scheduleAt(
+        screenshotId: Long,
+        targetEpochMs: Long,
+        filePath: String = ""
+    ): ExpiryQueueItem {
+        val seconds = ((targetEpochMs - System.currentTimeMillis()) / 1_000L).coerceAtLeast(1L)
+        return schedule(
+            screenshotId = screenshotId,
+            filePath = filePath,
+            deleteTimeEpochMs = targetEpochMs,
+            durationSeconds = seconds
+        )
+    }
 
     suspend fun cancel(id: Long) {
         dao.findById(id)?.let { cancelByScreenshot(it.screenshotId) }

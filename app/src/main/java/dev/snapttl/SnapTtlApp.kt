@@ -9,7 +9,6 @@ import dev.snapttl.data.repository.ScreenshotRepository
 import dev.snapttl.data.repository.SearchRepository
 import dev.snapttl.data.search.SearchIndexDatabase
 import dev.snapttl.di.Services
-import dev.snapttl.domain.EntitlementState
 import dev.snapttl.language.LocaleHelper
 import dev.snapttl.service.NotificationChannels
 import dev.snapttl.state.CommonState
@@ -24,7 +23,8 @@ class SnapTtlApp : Application() {
     lateinit var services: Services
         private set
 
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /** Application-wide scope for one-shot background work (receiver actions, reconcile). */
+    internal val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
@@ -53,25 +53,15 @@ class SnapTtlApp : Application() {
         container.vision = MlKitScreenshotVision(this)
         container.searchRepo = SearchRepository(container.searchDao, container.vision, container.screenshotRepo)
 
-        val entitlement = entitlement(container)
         container.commonState.update {
             CommonState(
                 serviceEnabled = container.prefs.serviceEnabled,
-                premiumPurchased = container.prefs.havePremiumPurchased,
-                adsRemoved = container.prefs.haveAdsRemoved,
-                refillDaysLeft = entitlement.refillDaysLeft(System.currentTimeMillis()),
-                timeChips = container.prefs.timeChips,
+                autoDeleteDurationSeconds = container.prefs.autoDeleteDurationSeconds,
                 noDialogAutoDelete = container.prefs.noDialogAutoDeleteEnabled
             )
         }
         return container
     }
-
-    private fun entitlement(container: Services) = EntitlementState(
-        premiumPurchased = container.prefs.havePremiumPurchased,
-        adsRemoved = container.prefs.haveAdsRemoved,
-        refillExpiryEpochMs = container.prefs.refillExpiryEpochMs
-    )
 
     /**
      * Runs the expiry-queue reconcile (crash/boot safety net) once per app open.

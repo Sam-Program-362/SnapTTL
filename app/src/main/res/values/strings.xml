@@ -17,9 +17,6 @@
     <string name="home_permissions_title">Required permissions</string>
     <string name="home_granted">Granted</string>
     <string name="home_missing">Grant</string>
-    <string name="home_chips_title">Deletion durations</string>
-    <string name="home_chips_hint">Tap to arm the durations offered when a screenshot is taken. Advanced durations need Premium or an active refill.</string>
-    <string name="home_premium_active">Premium unlocked.</string>
     <string name="home_recent_title">Recent screenshots</string>
 
     <string name="perm_notifications">Notifications</string>
@@ -65,18 +62,10 @@
     <string name="settings_folder_current">A screenshots folder is connected.</string>
     <string name="settings_folder_pick">Choose folder</string>
     <string name="settings_folder_clear">Clear</string>
-    <string name="settings_chips_title">Deletion durations</string>
-    <string name="settings_chips_desc">Armed durations are offered on the floating delete-timer and used by silent auto-delete.</string>
     <string name="settings_language">Language</string>
     <string name="settings_system_language">System default</string>
     <string name="settings_ocr">On-device search index</string>
     <string name="settings_ocr_desc">OCR text and image labels are indexed on-device only.</string>
-    <string name="settings_subscriptions">Subscriptions</string>
-    <string name="settings_premium">Premium</string>
-    <string name="settings_buy_premium">Buy Premium</string>
-    <string name="settings_ads_removed">Ads removed</string>
-    <string name="settings_remove_ads">Remove ads</string>
-    <string name="settings_refill">Watch ad · +20 days refill</string>
     <string name="settings_autostart_title">Background auto-start</string>
     <string name="settings_autostart_desc">Aggressive battery killers may stop the monitor. Open the OEM auto-start screen to allow it.</string>
     <string name="settings_autostart_open">Open auto-start settings</string>
@@ -85,8 +74,35 @@
 
     <string name="extra_features_title">Extra features</string>
     <string name="extra_silent_auto_delete">Silent auto-delete</string>
-    <string name="extra_silent_premium_only">Premium-only feature; not covered by a refill.</string>
-    <string name="extra_refill_days">%1$d days of ad-free refill left</string>
+    <string name="extra_silent_desc">Skip the floating timer and arm the default timer the moment a screenshot is taken.</string>
+
+    <string name="duration_default_title">Default delete timer</string>
+    <string name="duration_default_desc">Starting point for the floating timer and the duration used by silent auto-delete and bulk actions. Up to 7 days.</string>
+    <string name="duration_picker_value">Delete after %1$s</string>
+    <string name="duration_hours">Hours</string>
+    <string name="duration_minutes">Minutes</string>
+    <string name="duration_seconds">Seconds</string>
+    <string name="duration_days">Days</string>
+    <string name="duration_preview">Deletes in %1$s</string>
+    <string name="duration_schedule">Schedule delete</string>
+    <string name="duration_set">Set</string>
+    <string name="duration_cancel">Cancel</string>
+    <string name="duration_pick_datetime">Pick a date &amp; time instead</string>
+    <string name="duration_pick_datetime_title">Delete at a specific date and time (up to a year ahead).</string>
+    <string name="duration_back_to_timer">Back to timer</string>
+    <string name="duration_target_preview">Deletes on %1$s</string>
+    <string name="duration_invalid">Pick a duration up to 7 days.</string>
+
+    <string name="screenshots_pick_time">Pick time…</string>
+    <string name="screenshots_delete_in">Delete in %1$s</string>
+
+    <string name="channel_actions">Screenshot actions</string>
+    <string name="channel_actions_desc">Shown instead of the floating timer when the display-over-apps permission is missing.</string>
+    <string name="notif_fallback_title">Screenshot captured</string>
+    <string name="notif_fallback_text">Decide what to do with %1$s</string>
+    <string name="notif_action_delete_now">Delete now</string>
+    <string name="notif_action_keep">Keep</string>
+    <string name="overlay_no_permission_toast">Screenshot captured — grant “Display over other apps” or notifications to get the delete timer.</string>
 
     <string name="overlay_new_screenshot">New screenshot</string>
     <string name="overlay_choose">Choose how long to keep it, or delete it right away.</string>

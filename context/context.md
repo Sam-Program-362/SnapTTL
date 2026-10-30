@@ -1,14 +1,46 @@
 # SnapTTL — Context
 
 Working context for this task, kept across turns. Current session branch:
-`arena/85a2efc2-snapttl` (supersedes the earlier `arena/a88f5870-snapttl` session that
-produced PR #1).
+`arena/3e8349f3-snapttl` (supersedes `arena/85a2efc2-snapttl`, merged via PRs
+#2–#4, and the original `arena/a88f5870-snapttl` that produced PR #1).
 
 ## Objective
 Clean-room reconstruct the Android screenshot time-to-live app described by the Drive
 analysis (`REA / Mark`, target `com.markOne.ss_app` v7.1) as **SnapTTL**
 (`dev.snapttl.app`). Reconstruct it **in GitHub**, re-review the code, test it on
 Android 14+ and 11+, and once sound, run an APK-building workflow.
+
+## User feedback round 2 (2026-10-30, debug-APK test on an Android 16 device)
+Three directives, all implemented this session:
+
+1. **Freemium removed** — SnapTTL is a free app. `EntitlementState`, premium /
+   ads-removed / refill prefs, gating UI in Home/Settings/All-Screenshots and the
+   subscriptions card are gone. Silent auto-delete is available to everyone.
+2. **Durations are user-set, not pre-installed** — the floating overlay and the
+   in-app pickers use an h/m/s stepper (1 s … 7 days). The overlay additionally
+   carries a *subtle* "Pick a date & time instead" affordance (days/hours/minutes
+   with an absolute-date preview, up to a year ahead) — the only way past a week.
+   Single default timer stored in `auto_delete_duration_seconds` (default 15 min).
+3. **Popup didn't appear on Android 16** — root cause: the overlay was an *Activity*
+   launched from the background; blocked background-activity launches fail
+   **silently** (Android 10+ BAL rules, narrowed further on 15/16) even with
+   SYSTEM_ALERT_WINDOW granted. The toast path worked because toasts need no BAL.
+   Fix: the card is now a **WindowManager overlay window** (`TYPE_APPLICATION_OVERLAY`
+   view owned by `CaptureMonitorService`, Compose hosted via a custom
+   LifecycleOwner/SavedStateRegistryOwner) — adding a window needs no activity
+   launch at all. When SAW is missing or the window is rejected, a **heads-up
+   notification with actions** (Delete now / Delete in default / Keep) fires via
+   `CaptureNotificationFallback` + `CaptureActionReceiver`.
+
+### Deferred monetization option (recorded for the future)
+The user may revisit a **rewarded-ad refill**: watching an ad grants **+20 days** of
+"extra durations unlocked", stacking up to a **40-day cap** (expiry persisted as an
+epoch-ms). The previous clean-room implementation (removed in this session) had:
+`EntitlementState` with `REFILL_GRANT_DAYS=20`, `REFILL_MAX_DAYS=40`,
+`hasUnlockedFeatures`, `applyRewardedAdRefill`, pref keys
+`have_premium_purchased` / `have_ads_removed` / `refill_expiry_date`; freemium rule
+"free tier may only arm 15–45 minute durations". History lives in git
+(commit `d557a3f` and earlier). **No ads, no premium, no network calls exist today.**
 
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
@@ -53,12 +85,12 @@ Android 14+ and 11+, and once sound, run an APK-building workflow.
 | # | Requirement | Where |
 |---|---|---|
 | 1 | Automatic screenshot detection | `domain/ScreenshotFilter` + `service/CaptureMonitorService` |
-| 2 | Floating overlay with countdown + delete | `ui/overlay/CaptureOverlay*` + `CaptureOverlayActivity` |
+| 2 | Floating overlay with countdown + delete | `ui/overlay/CaptureOverlay` + `CaptureOverlayWindows` (WindowManager overlay window) + notification fallback |
 | 3 | Silent deletion (SAF tree first, MediaStore fallback) | `repository/ScreenshotRepository.deleteScreenshot` + `ExpiryPurgeWorker` |
 | 4 | Scheduled deletion queue with silent reschedule | `data/expiry/*`, `ExpiryRepository` (delayed, REPLACE, rescheduleAll), `ExpiryPurgeWorker` |
 | 5 | On-device OCR + image labeling index + search | `vision/*`, `data/search/*`, `SearchRepository`, `OcrIndexWorker`, Search screen |
 | 6 | Manage-all-screenshots | Home recent grid / All Screenshots screens, `ScreenshotRepository.listAll` |
-| 7 | Freemium limits + ad refill + premium | `domain/EntitlementState`, `domain/TimeChips`, `PrefsManager`, Home/Settings gating |
+| 7 | Free app: user-set durations (stepper ≤ 7 d; overlay date/time path ≤ 1 y) | `domain/DeletionDuration`, `ui/common/DurationPicker`, overlay stepper + date/time mode, `PrefsManager.autoDeleteDurationSeconds` |
 | 8 | Crash-resilient silent delete | `ExpiryPurgeWorker` retry, `rescheduleAll`, `BootCompletedReceiver`, service auto-start in `MainActivity` |
 | 9 | OEM auto-start routing | `domain/OemAutoStart` + Settings screen |
 | 10 | In-app locale switching | `language/AppLanguage`, `language/LocaleHelper` (33+ per-app locale), Settings |

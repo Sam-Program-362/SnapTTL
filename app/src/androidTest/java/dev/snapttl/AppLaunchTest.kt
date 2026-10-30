@@ -2,6 +2,7 @@ package dev.snapttl
 
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.ui.MainActivity
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,7 +30,7 @@ class AppLaunchTest {
             scenario.onActivity { activity ->
                 val app = activity.application as SnapTtlApp
                 // Composition root wired: repositories and DAOs are available.
-                assertTrue(app.services.prefs.timeChips.isNotEmpty())
+                assertTrue(DeletionDuration.isValidSeconds(app.services.prefs.autoDeleteDurationSeconds))
             }
         }
     }
