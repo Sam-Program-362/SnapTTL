@@ -96,10 +96,10 @@ jobs:
 
       - name: Packaged permission audit
         run: |
-          ./gradlew :app:processDebugMainManifest --no-daemon --console=plain
-          echo "--- merged manifest permissions ---"
-          GOT=$(grep -o 'android.permission\.[A-Z_]*' \
-            app/build/intermediates/merged_manifest/debug/AndroidManifest.xml | sort -u)
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          AAPT=$(ls ${ANDROID_HOME}/build-tools/*/aapt | sort | tail -1)
+          echo "--- packaged permissions in $APK ---"
+          GOT=$("$AAPT" dump permissions "$APK" | grep -o 'android.permission\.[A-Z_]*' | sort -u)
           echo "$GOT"
           EXPECTED=$(printf '%s\n' \
             android.permission.FOREGROUND_SERVICE \
@@ -115,7 +115,9 @@ jobs:
             android.permission.WAKE_LOCK | sort -u)
           if [ "$GOT" != "$EXPECTED" ]; then
             echo "::error::Packaged permission set drifted from the reviewed allowlist"
-            diff <(echo "$EXPECTED") <(echo "$GOT") || true
+            diff <(echo "$EXPECTED") <(echo "$GOT") | while IFS= read -r line; do
+              echo "::error::$line"
+            done
             exit 1
           fi
 
