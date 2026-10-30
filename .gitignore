@@ -1,0 +1,22 @@
+# Gradle / build outputs
+.gradle/
+build/
+/local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio
+*.apk
+*.ap_
+*.dex
+
+# User data pulled from Drive (never commit)
+google_drive/
+
+# Python clean-room scratch suite output
+__pycache__/
+*.pyc
