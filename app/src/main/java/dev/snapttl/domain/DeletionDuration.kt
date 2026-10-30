@@ -38,6 +38,41 @@ object DeletionDuration {
         SECONDS_PER_DAY
     )
 
+    /**
+     * Snap ladder for the custom-duration slider: every position of the
+     * slider maps to a real, sensible duration (5 s … 7 d), so the control
+     * never lands on an awkward value. Duplicates would be a bug — tests
+     * assert strict ordering and uniqueness.
+     */
+    val LADDER: List<Long> = listOf(
+        5L, 10L, 15L, 30L, 45L,
+        SECONDS_PER_MINUTE, 2L * SECONDS_PER_MINUTE, 5L * SECONDS_PER_MINUTE,
+        10L * SECONDS_PER_MINUTE, 15L * SECONDS_PER_MINUTE, 20L * SECONDS_PER_MINUTE,
+        30L * SECONDS_PER_MINUTE, 45L * SECONDS_PER_MINUTE,
+        SECONDS_PER_HOUR, 90L * SECONDS_PER_MINUTE, 2L * SECONDS_PER_HOUR,
+        3L * SECONDS_PER_HOUR, 4L * SECONDS_PER_HOUR, 6L * SECONDS_PER_HOUR,
+        8L * SECONDS_PER_HOUR, 12L * SECONDS_PER_HOUR, 18L * SECONDS_PER_HOUR,
+        SECONDS_PER_DAY, 2L * SECONDS_PER_DAY, 3L * SECONDS_PER_DAY,
+        4L * SECONDS_PER_DAY, 5L * SECONDS_PER_DAY, 6L * SECONDS_PER_DAY,
+        7L * SECONDS_PER_DAY
+    )
+
+    /** Index of the ladder rung closest to [seconds] (clamped to the range). */
+    fun nearestLadderIndex(seconds: Long): Int {
+        if (seconds <= LADDER.first()) return 0
+        if (seconds >= LADDER.last()) return LADDER.lastIndex
+        var best = 0
+        var bestDiff = Long.MAX_VALUE
+        for (i in LADDER.indices) {
+            val diff = Math.abs(LADDER[i] - seconds)
+            if (diff < bestDiff) {
+                best = i
+                bestDiff = diff
+            }
+        }
+        return best
+    }
+
     /** Quick-timer validation: 1 s … 7 d. */
     fun isValidSeconds(seconds: Long): Boolean = seconds in 1..MAX_SECONDS
 

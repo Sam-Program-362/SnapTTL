@@ -49,6 +49,55 @@ epoch-ms). The previous clean-room implementation (removed in this session) had:
 "free tier may only arm 15–45 minute durations". History lives in git
 (commit `d557a3f` and earlier). **No ads, no premium, no network calls exist today.**
 
+## User feedback round 4 (2026-10-31, popup polish toward muscle memory)
+The user tested v0.1.1 and sent three new reference screenshots. Directives and
+how this round answers each:
+
+1. **Popup too large/distracting at the top** — the card is now **compact and
+   bottom-centre**: `CaptureOverlayWindows` uses `WRAP_CONTENT` +
+   `Gravity.BOTTOM|CENTER_HORIZONTAL` (y 8 dp) so the window hugs the card,
+   the card is capped at **340 dp** wide, and the card itself adds
+   `navigationBarsPadding()` so it clears the nav bar. Top of screen stays free
+   of shading on Android 15/16.
+2. **Minimal text** — the filename/title row is gone. The only texts left are
+   the chip labels, "Custom…", and small previews in the sub-modes. Share and
+   keep (✕) moved onto the preview strip as translucent badge buttons.
+3. **Auto-close immediately on selection** — every arming action (chip, custom
+   slider, date/time, delete-now) launches the schedule work on
+   **`SnapTtlApp.appScope`** (survives the window teardown — a composition
+   scope would be cancelled mid-write) and calls `onDismiss()` right away.
+   The countdown-display state (`hasTimer`, the 1 s poll, the progress
+   spinner) is deleted; the confirmation now lives in the monitor-service
+   toast ("Deletes in …"), which already existed. Idle cards still auto-close
+   after 45 s (reset when the user switches modes).
+4. **Wide letterbox preview strip** — full card width × **96 dp** `AsyncImage`
+   (Crop, crossfade, rounded 12 dp, `surfaceVariant` placeholder) so the user
+   identifies the shot at a glance; `displayName` survives only as the image's
+   a11y `contentDescription`.
+5. **Theme: orange but not blinding** — `Theme.kt` rewritten as a dark-first
+   **ember palette**: dark surfaces are warm near-blacks (`#141210`/`#1C1917`),
+   primary is soft ember `#FFB86B` on deep amber-brown containers `#6A3B0D`
+   (was neon `#FF4500`), muted tan secondary, muted teal tertiary for
+   separation; light scheme is a desaturated burnt-orange (`#A13E00`) on warm
+   white (`#FFF8F4`). Typography unchanged. Animations: overlay entry
+   (spring rise + fade) and `AnimatedContent` fade/slide between modes.
+6. **No −/+ stepper** — replaced by a **Material3 `Slider` over a snap ladder**
+   (`DeletionDuration.LADDER`, 29 rungs 5 s … 7 d; `nearestLadderIndex()`):
+   one gesture, every position is a real duration, confirm button can never
+   be disabled. The in-app add/edit dialog uses the same control. Date/time
+   mode uses three **`WheelColumn`s** (LazyColumn +
+   `rememberSnapFlingItemBehavior`, Cupertino-style snap wheels) for
+   days/hours/minutes.
+7. **First-time-user empathy** — icon actions have contentDescriptions, the
+   slider shows its "5 s"/"7 d" ends, `duration_preview` ("Deletes in …")
+   stays as a one-line caption, and the ✕ badge keeps the "Keep" label.
+
+Strings: 119 keys (removed `overlay_choose`, `overlay_share_and_delete`,
+`duration_seconds`, `duration_picker_title`; `overlay_delete_in` is still used
+by the monitor-service toast). `Stepper` composable deleted. Version bumped to
+**0.1.2 / versionCode 3**. Python mirror extended: 17 tests (ladder order +
+nearest-rung snapping).
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).

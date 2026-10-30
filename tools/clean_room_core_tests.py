@@ -150,6 +150,29 @@ def decode_chips(raw: Optional[str]) -> List[int]:
     return sorted(out)
 
 
+LADDER = [
+    5, 10, 15, 30, 45,                                                        # seconds
+    1 * 60, 2 * 60, 5 * 60, 10 * 60, 15 * 60, 20 * 60, 30 * 60, 45 * 60,      # minutes
+    3600, 90 * 60, 2 * 3600, 3 * 3600, 4 * 3600, 6 * 3600, 8 * 3600,
+    12 * 3600, 18 * 3600,                                                     # hours
+    86400, 2 * 86400, 3 * 86400, 4 * 86400, 5 * 86400, 6 * 86400, 7 * 86400,  # days
+]
+
+
+def nearest_ladder_index(seconds: int) -> int:
+    """Mirror of DeletionDuration.nearestLadderIndex (closest rung, clamped)."""
+    if seconds <= LADDER[0]:
+        return 0
+    if seconds >= LADDER[-1]:
+        return len(LADDER) - 1
+    best, best_diff = 0, None
+    for i, value in enumerate(LADDER):
+        diff = abs(value - seconds)
+        if best_diff is None or diff < best_diff:
+            best, best_diff = i, diff
+    return best
+
+
 # ---------------------------------------------------------------- OCR/label search
 class MarkPersistenceEngine:
     def __init__(self):
@@ -345,6 +368,26 @@ class CleanRoomCoreTests(unittest.TestCase):
         self.assertEqual(decode_chips(None), [])
         self.assertEqual(decode_chips("  "), [])
         self.assertEqual(decode_chips("60, %d" % (MAX_SECONDS + 1)), [60])
+
+    def test_slider_ladder_is_sorted_unique_and_in_range(self):
+        self.assertEqual(LADDER, sorted(LADDER))
+        self.assertEqual(len(LADDER), len(set(LADDER)))
+        self.assertTrue(all(is_valid_seconds(v) for v in LADDER))
+        self.assertEqual(LADDER[0], 5)
+        self.assertEqual(LADDER[-1], MAX_SECONDS)
+        self.assertEqual(len(LADDER), 29)
+
+    def test_nearest_ladder_index_snaps_exactly_and_by_closeness(self):
+        for i, value in enumerate(LADDER):
+            self.assertEqual(nearest_ladder_index(value), i)
+        self.assertEqual(nearest_ladder_index(-10), 0)
+        self.assertEqual(nearest_ladder_index(0), 0)
+        self.assertEqual(nearest_ladder_index(10 ** 12), len(LADDER) - 1)
+        self.assertEqual(nearest_ladder_index(7), 0)      # 5 s vs 10 s tie -> lower
+        self.assertEqual(nearest_ladder_index(8), 1)      # closer to 10 s
+        self.assertEqual(nearest_ladder_index(90 * 60 + 600), LADDER.index(90 * 60))
+        for chip in DEFAULT_CHIPS:
+            self.assertEqual(LADDER[nearest_ladder_index(chip)], chip)
 
     def test_ocr_and_label_search(self):
         engine = MarkPersistenceEngine()

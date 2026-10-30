@@ -73,6 +73,41 @@ class DeletionDurationTest {
     }
 
     @Test
+    fun slider_ladder_is_sorted_unique_and_within_the_quick_range() {
+        val ladder = DeletionDuration.LADDER
+        assertEquals(ladder.sorted(), ladder)                            // ascending
+        assertEquals(ladder.distinct().size, ladder.size)                // no duplicates
+        assertTrue(ladder.all { DeletionDuration.isValidSeconds(it) })  // 1 s … 7 d
+        assertEquals(5L, ladder.first())                                 // 5 s
+        assertEquals(DeletionDuration.MAX_SECONDS, ladder.last())       // 7 d
+        assertEquals(29, ladder.size)
+    }
+
+    @Test
+    fun nearest_ladder_index_snaps_exactly_and_by_closeness() {
+        val ladder = DeletionDuration.LADDER
+        // Exact values map to themselves.
+        ladder.forEachIndexed { i, value ->
+            assertEquals(i, DeletionDuration.nearestLadderIndex(value))
+        }
+        // Out-of-range values clamp to the ends.
+        assertEquals(0, DeletionDuration.nearestLadderIndex(Long.MIN_VALUE))
+        assertEquals(0, DeletionDuration.nearestLadderIndex(0))
+        assertEquals(ladder.lastIndex, DeletionDuration.nearestLadderIndex(Long.MAX_VALUE))
+        // In-between values snap to the nearest rung.
+        assertEquals(0, DeletionDuration.nearestLadderIndex(7))    // 5 s vs 10 s, equidistant → lower
+        assertEquals(1, DeletionDuration.nearestLadderIndex(8))    // closer to 10 s
+        assertEquals(
+            ladder.indexOf(90L * 60),
+            DeletionDuration.nearestLadderIndex(90L * 60 + 600)    // 10 min past 90 m
+        )
+        // A default chip lands on a rung.
+        DeletionDuration.DEFAULT_CHIPS.forEach { chip ->
+            assertEquals(chip, ladder[DeletionDuration.nearestLadderIndex(chip)])
+        }
+    }
+
+    @Test
     fun chip_list_rules() {
         assertTrue(DeletionDuration.isValidChipList(listOf(30L)))
         assertTrue(
