@@ -39,7 +39,7 @@ class SearchIndexDaoTest {
 
         assertEquals(listOf(102L), dao.search("Boarding Pass"))
         assertEquals(listOf(101L), dao.search("Receipt"))
-        assertEquals(emptyList(), dao.search("nothing"))
+        assertEquals(emptyList<Long>(), dao.search("nothing"))
         assertEquals(listOf(101L, 102L), dao.indexedAmong(listOf(101L, 102L, 103L)).sorted())
     }
 
