@@ -44,20 +44,7 @@ jobs:
             /tmp/unit-tests.log | head -40 | while IFS= read -r line; do
             echo "::error::${line}"
           done
-          find app/build/test-results -name "TEST-*.xml" -print0 2>/dev/null | while IFS= read -r -d '' f; do
-            python3 - "$f" <<'PY'
-import sys
-import xml.etree.ElementTree as ET
-try:
-    tree = ET.parse(sys.argv[1])
-except Exception:
-    sys.exit(0)
-for tc in tree.iter("testcase"):
-    for fail in list(tc.iter("failure")) + list(tc.iter("error")):
-        msg = ((fail.get("message") or "") + " " + (fail.text or ""))[:400].replace("\n", " | ")
-        print(f"::error::FAILED {tc.get('classname')}.{tc.get('name')} :: {msg}")
-PY
-          done
+          python3 tools/ci_test_failures.py app/build/test-results
 
       - name: Upload full unit-test log
         if: failure()
