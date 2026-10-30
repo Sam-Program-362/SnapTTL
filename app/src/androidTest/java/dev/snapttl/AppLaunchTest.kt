@@ -30,7 +30,7 @@ class AppLaunchTest {
             scenario.onActivity { activity ->
                 val app = activity.application as SnapTtlApp
                 // Composition root wired: repositories and DAOs are available.
-                assertTrue(DeletionDuration.isValidSeconds(app.services.prefs.autoDeleteDurationSeconds))
+                assertTrue(DeletionDuration.isValidChipList(app.services.prefs.customDurations))
             }
         }
     }

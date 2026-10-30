@@ -29,7 +29,7 @@ data class SettingsUiState(
     val overlayPermissionGranted: Boolean = false,
     val screenshotFolderTreeUri: String? = null,
     val ocrIndexEnabled: Boolean = true,
-    val defaultDurationSeconds: Long = DeletionDuration.DEFAULT_SECONDS
+    val customDurations: List<Long> = emptyList()
 )
 
 class SettingsViewModel(private val services: Services) : ViewModel() {
@@ -56,7 +56,7 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
                 overlayPermissionGranted = Settings.canDrawOverlays(context),
                 screenshotFolderTreeUri = services.prefs.screenshotFolderTreeUri,
                 ocrIndexEnabled = services.prefs.ocrIndexEnabled,
-                defaultDurationSeconds = services.prefs.autoDeleteDurationSeconds
+                customDurations = services.prefs.customDurations
             )
         }
     }
@@ -77,11 +77,21 @@ class SettingsViewModel(private val services: Services) : ViewModel() {
         refresh()
     }
 
-    /** Sets the default deletion timer (used by silent auto-delete + overlay start). */
-    fun setDefaultDuration(seconds: Long) {
-        if (!DeletionDuration.isValidSeconds(seconds)) return
-        services.prefs.autoDeleteDurationSeconds = seconds
-        services.commonState.update { it.copy(autoDeleteDurationSeconds = seconds) }
+    /** Adds or edits one of the user's quick-delete options (see [DeletionDuration.upsertChip]). */
+    fun upsertDuration(oldSeconds: Long?, newSeconds: Long) {
+        val next = DeletionDuration.upsertChip(services.prefs.customDurations, oldSeconds, newSeconds)
+            ?: return
+        services.prefs.customDurations = next
+        services.commonState.update { it.copy(customDurations = next) }
+        refresh()
+    }
+
+    /** Removes one of the user's quick-delete options (at least one always stays). */
+    fun removeDuration(seconds: Long) {
+        val next = DeletionDuration.removeChip(services.prefs.customDurations, seconds)
+            ?: return
+        services.prefs.customDurations = next
+        services.commonState.update { it.copy(customDurations = next) }
         refresh()
     }
 

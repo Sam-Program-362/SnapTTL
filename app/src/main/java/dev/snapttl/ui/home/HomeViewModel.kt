@@ -19,7 +19,7 @@ data class PermissionUi(val name: String, val granted: Boolean)
 data class HomeUiState(
     val serviceEnabled: Boolean = true,
     val permissions: List<PermissionUi> = emptyList(),
-    val defaultDurationSeconds: Long = DeletionDuration.DEFAULT_SECONDS,
+    val customDurations: List<Long> = emptyList(),
     val totalDeleted: Long = 0,
     val totalSaved: Long = 0,
     val recent: List<ScreenshotMedia> = emptyList()
@@ -40,7 +40,7 @@ class HomeViewModel(private val services: Services) : ViewModel() {
             HomeUiState(
                 serviceEnabled = services.prefs.serviceEnabled,
                 permissions = Permissions.required(context).map { PermissionUi(it, Permissions.isGranted(context, it)) },
-                defaultDurationSeconds = services.prefs.autoDeleteDurationSeconds,
+                customDurations = services.prefs.customDurations,
                 totalDeleted = services.prefs.totalScreenshotsDeleted,
                 totalSaved = services.prefs.totalMemorySavedBytes,
                 recent = it.recent
@@ -63,11 +63,21 @@ class HomeViewModel(private val services: Services) : ViewModel() {
         refresh()
     }
 
-    /** Sets the default deletion timer (used by silent auto-delete + overlay start). */
-    fun setDefaultDuration(seconds: Long) {
-        if (!DeletionDuration.isValidSeconds(seconds)) return
-        services.prefs.autoDeleteDurationSeconds = seconds
-        services.commonState.update { it.copy(autoDeleteDurationSeconds = seconds) }
+    /** Adds or edits one of the user's quick-delete options (see [DeletionDuration.upsertChip]). */
+    fun upsertDuration(oldSeconds: Long?, newSeconds: Long) {
+        val next = DeletionDuration.upsertChip(services.prefs.customDurations, oldSeconds, newSeconds)
+            ?: return
+        services.prefs.customDurations = next
+        services.commonState.update { it.copy(customDurations = next) }
+        refresh()
+    }
+
+    /** Removes one of the user's quick-delete options (at least one always stays). */
+    fun removeDuration(seconds: Long) {
+        val next = DeletionDuration.removeChip(services.prefs.customDurations, seconds)
+            ?: return
+        services.prefs.customDurations = next
+        services.commonState.update { it.copy(customDurations = next) }
         refresh()
     }
 

@@ -49,7 +49,8 @@ SECONDS_PER_DAY = 86_400
 
 MAX_SECONDS = 7 * SECONDS_PER_DAY            # quick-timer cap: one week
 MAX_TARGET_AHEAD_DAYS = 365                  # date/time targets: at most a year out
-DEFAULT_SECONDS = 15 * SECONDS_PER_MINUTE
+MAX_CHIPS = 6                                # user's one-tap options: at most six
+DEFAULT_CHIPS = [15 * 60, 3600, 6 * 3600, 86400]  # 15m, 1h, 6h, 1d (editable starters)
 
 
 def is_valid_seconds(seconds: int) -> bool:
@@ -100,6 +101,53 @@ def unit_and_value(seconds: int) -> Tuple[int, str]:
     if seconds >= SECONDS_PER_MINUTE and seconds % SECONDS_PER_MINUTE == 0:
         return seconds // SECONDS_PER_MINUTE, "MINUTES"
     return seconds, "SECONDS"
+
+
+def is_valid_chip_list(chips: List[int]) -> bool:
+    """Mirror of DeletionDuration.isValidChipList (1..MAX_CHIPS, valid, unique)."""
+    return (
+        bool(chips)
+        and len(chips) <= MAX_CHIPS
+        and all(is_valid_seconds(c) for c in chips)
+        and len(set(chips)) == len(chips)
+    )
+
+
+def upsert_chip(chips: List[int], old_seconds: Optional[int], new_seconds: int) -> Optional[List[int]]:
+    """Mirror of DeletionDuration.upsertChip; None when the edit is rejected."""
+    if not is_valid_seconds(new_seconds):
+        return None
+    if new_seconds != old_seconds and new_seconds in chips:
+        return None
+    base = [c for c in chips if c != old_seconds] if old_seconds is not None else list(chips)
+    if old_seconds is None and len(base) >= MAX_CHIPS:
+        return None
+    return sorted(base + [new_seconds])
+
+
+def remove_chip(chips: List[int], seconds: int) -> Optional[List[int]]:
+    """Mirror of DeletionDuration.removeChip; None when the last one would go."""
+    if len(chips) <= 1 or seconds not in chips:
+        return None
+    return sorted(c for c in chips if c != seconds)
+
+
+def encode_chips(chips: List[int]) -> str:
+    return ",".join(str(c) for c in chips)
+
+
+def decode_chips(raw: Optional[str]) -> List[int]:
+    if not raw or not raw.strip():
+        return []
+    out = []
+    for part in raw.split(","):
+        try:
+            value = int(part.strip())
+        except ValueError:
+            continue
+        if is_valid_seconds(value) and value not in out:
+            out.append(value)
+    return sorted(out)
 
 
 # ---------------------------------------------------------------- OCR/label search
@@ -264,6 +312,39 @@ class CleanRoomCoreTests(unittest.TestCase):
         self.assertEqual(unit_and_value(7_200), (2, "HOURS"))
         self.assertEqual(unit_and_value(259_200), (3, "DAYS"))
         self.assertEqual(unit_and_value(90), (90, "SECONDS"))
+
+    def test_starter_chips_and_list_rules(self):
+        self.assertEqual(DEFAULT_CHIPS, [900, 3600, 21600, 86400])
+        self.assertTrue(is_valid_chip_list(DEFAULT_CHIPS))
+        self.assertTrue(is_valid_chip_list([30]))
+        self.assertTrue(is_valid_chip_list([(i + 1) * 60 for i in range(MAX_CHIPS)]))
+        self.assertFalse(is_valid_chip_list([]))
+        self.assertFalse(is_valid_chip_list([(i + 1) * 60 for i in range(7)]))
+        self.assertFalse(is_valid_chip_list([60, 60]))
+        self.assertFalse(is_valid_chip_list([60, 0]))
+
+    def test_upsert_adds_edits_and_rejects_bad_input(self):
+        base = [900, 3600]
+        self.assertEqual(upsert_chip(base, None, 86400), [900, 3600, 86400])
+        self.assertIsNone(upsert_chip(base, None, 900))
+        self.assertIsNone(upsert_chip(base, None, 0))
+        full = [(i + 1) * 60 for i in range(6)]
+        self.assertIsNone(upsert_chip(full, None, 86400))
+        self.assertEqual(upsert_chip(full, 360, 3600), [60, 120, 180, 240, 300, 3600])
+        self.assertIsNone(upsert_chip(base, 900, 3600))
+
+    def test_remove_never_empties_the_list(self):
+        self.assertIsNone(remove_chip([900], 900))
+        self.assertEqual(remove_chip([900, 3600], 3600), [900])
+        self.assertIsNone(remove_chip([900, 3600], 42))
+
+    def test_encode_decode_round_trips(self):
+        chips = [900, 3600, 86400]
+        self.assertEqual(decode_chips(encode_chips(chips)), chips)
+        self.assertEqual(decode_chips("abc, 900, -5, 0"), [900])
+        self.assertEqual(decode_chips(None), [])
+        self.assertEqual(decode_chips("  "), [])
+        self.assertEqual(decode_chips("60, %d" % (MAX_SECONDS + 1)), [60])
 
     def test_ocr_and_label_search(self):
         engine = MarkPersistenceEngine()

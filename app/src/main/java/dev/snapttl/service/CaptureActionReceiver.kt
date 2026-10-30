@@ -24,7 +24,8 @@ class CaptureActionReceiver : BroadcastReceiver() {
                     ACTION_DELETE_NOW -> CaptureActions.deleteNow(app.services, screenshotId)
                     ACTION_DELETE_IN -> app.services.expiryRepo.scheduleIn(
                         screenshotId = screenshotId,
-                        durationSeconds = app.services.prefs.autoDeleteDurationSeconds,
+                        durationSeconds = app.services.prefs.customDurations.firstOrNull()
+                            ?: dev.snapttl.domain.DeletionDuration.DEFAULT_CHIPS.first(),
                         filePath = ""
                     )
                     // ACTION_KEEP: nothing to do beyond dismissing.

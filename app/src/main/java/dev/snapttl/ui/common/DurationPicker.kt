@@ -1,24 +1,31 @@
 package dev.snapttl.ui.common
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,8 +74,91 @@ fun Stepper(
 }
 
 /**
- * In-app dialog for picking the default deletion duration (up to a week).
- * Used by Home, Settings and bulk actions.
+ * In-app manager for the user's own quick-delete options — the one-tap buttons
+ * that appear on the floating overlay. Tap a chip to edit it, × to remove it
+ * (at least one must stay), "Add duration" for a new one. The first option is
+ * what silent auto-delete and bulk delete use.
+ */
+@Composable
+fun QuickDurationsCard(
+    durations: List<Long>,
+    onUpsert: (oldSeconds: Long?, newSeconds: Long) -> Unit,
+    onRemove: (seconds: Long) -> Unit
+) {
+    var editing by remember { mutableStateOf<Long?>(null) } // null = adding
+    var dialogOpen by remember { mutableStateOf(false) }
+
+    if (dialogOpen) {
+        DurationPickerDialog(
+            title = if (editing == null) {
+                stringResource(R.string.duration_add)
+            } else {
+                stringResource(R.string.duration_edit)
+            },
+            initialSeconds = editing ?: durations.firstOrNull() ?: DeletionDuration.DEFAULT_CHIPS.first(),
+            onDismiss = { dialogOpen = false },
+            onConfirm = { seconds ->
+                dialogOpen = false
+                onUpsert(editing, seconds)
+            }
+        )
+    }
+
+    Column {
+        Text(stringResource(R.string.durations_card_title), style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(4.dp))
+        Text(stringResource(R.string.durations_card_desc), style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(8.dp))
+        durations.chunked(3).forEach { rowDurations ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowDurations.forEach { seconds ->
+                    InputChip(
+                        selected = false,
+                        onClick = {
+                            editing = seconds
+                            dialogOpen = true
+                        },
+                        label = { Text(DeletionDuration.detailedLabel(seconds)) },
+                        trailingIcon = if (durations.size > 1) {
+                            {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.duration_remove),
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clickable { onRemove(seconds) }
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 0.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+        if (durations.size < DeletionDuration.MAX_CHIPS) {
+            OutlinedButton(onClick = {
+                editing = null
+                dialogOpen = true
+            }) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.duration_add))
+            }
+        }
+    }
+}
+
+/**
+ * In-app dialog for picking a duration (up to a week). Used for adding or
+ * editing a quick option and for ad-hoc choices in bulk actions.
  */
 @Composable
 fun DurationPickerDialog(

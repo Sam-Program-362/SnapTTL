@@ -56,7 +56,7 @@ class SnapTtlApp : Application() {
         container.commonState.update {
             CommonState(
                 serviceEnabled = container.prefs.serviceEnabled,
-                autoDeleteDurationSeconds = container.prefs.autoDeleteDurationSeconds,
+                customDurations = container.prefs.customDurations,
                 noDialogAutoDelete = container.prefs.noDialogAutoDeleteEnabled
             )
         }

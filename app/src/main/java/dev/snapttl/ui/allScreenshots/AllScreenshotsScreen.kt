@@ -49,7 +49,7 @@ fun AllScreenshotsScreen() {
     if (showDurationPicker) {
         DurationPickerDialog(
             title = stringResource(R.string.screenshots_pick_time),
-            initialSeconds = state.defaultDurationSeconds,
+            initialSeconds = state.customDurations.firstOrNull() ?: 900L,
             onDismiss = { showDurationPicker = false },
             onConfirm = { seconds ->
                 showDurationPicker = false
@@ -92,12 +92,12 @@ fun AllScreenshotsScreen() {
                                 Text(stringResource(R.string.screenshots_pick_time))
                             }
                             OutlinedButton(onClick = {
-                                viewModel.scheduleForSelected(state.defaultDurationSeconds)
+                                viewModel.scheduleForSelected(state.customDurations.firstOrNull() ?: 900L)
                             }) {
                                 Text(
                                     stringResource(
                                         R.string.screenshots_delete_in,
-                                        DeletionDuration.label(state.defaultDurationSeconds)
+                                        DeletionDuration.label(state.customDurations.firstOrNull() ?: 900L)
                                     )
                                 )
                             }

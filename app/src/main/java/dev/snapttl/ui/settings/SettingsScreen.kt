@@ -38,10 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.snapttl.R
-import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.language.AppLanguage
 import dev.snapttl.ui.LocalSnapTtlFactory
-import dev.snapttl.ui.common.DurationPickerDialog
+import dev.snapttl.ui.common.QuickDurationsCard
 
 @Composable
 fun SettingsScreen() {
@@ -49,19 +48,6 @@ fun SettingsScreen() {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var languageExpanded by remember { mutableStateOf(false) }
-    var showDurationPicker by remember { mutableStateOf(false) }
-
-    if (showDurationPicker) {
-        DurationPickerDialog(
-            title = stringResource(R.string.duration_default_title),
-            initialSeconds = state.defaultDurationSeconds,
-            onDismiss = { showDurationPicker = false },
-            onConfirm = { seconds ->
-                showDurationPicker = false
-                viewModel.setDefaultDuration(seconds)
-            }
-        )
-    }
 
     // SAF screenshots-folder picker: the persistent tree grant makes silent
     // deletion reliable on Android 11+ (MediaStore alone cannot delete
@@ -149,16 +135,14 @@ fun SettingsScreen() {
             }
             Spacer(Modifier.height(12.dp))
 
-            // --- Deletion durations ---
+            // --- Quick delete durations ---
             Card {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(stringResource(R.string.duration_default_title), style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(R.string.duration_default_desc), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = { showDurationPicker = true }) {
-                        Text(stringResource(R.string.duration_picker_value, DeletionDuration.detailedLabel(state.defaultDurationSeconds)))
-                    }
+                    QuickDurationsCard(
+                        durations = state.customDurations,
+                        onUpsert = viewModel::upsertDuration,
+                        onRemove = viewModel::removeDuration
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))

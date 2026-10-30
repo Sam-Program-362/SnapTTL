@@ -2,6 +2,7 @@ package dev.snapttl.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -63,5 +64,64 @@ class DeletionDurationTest {
         assertEquals(3 to TimeUnit.DAYS, DeletionDuration.unitAndValue(259_200))
         assertEquals(90 to TimeUnit.SECONDS, DeletionDuration.unitAndValue(90)) // 1.5 min stays exact
         assertEquals(7 to TimeUnit.DAYS, DeletionDuration.unitAndValue(DeletionDuration.MAX_SECONDS))
+    }
+
+    @Test
+    fun starter_options_are_four_valid_unique_chips() {
+        assertEquals(listOf(900L, 3_600L, 21_600L, 86_400L), DeletionDuration.DEFAULT_CHIPS)
+        assertTrue(DeletionDuration.isValidChipList(DeletionDuration.DEFAULT_CHIPS))
+    }
+
+    @Test
+    fun chip_list_rules() {
+        assertTrue(DeletionDuration.isValidChipList(listOf(30L)))
+        assertTrue(
+            DeletionDuration.isValidChipList(
+                List(DeletionDuration.MAX_CHIPS) { (it + 1) * 60L }
+            )
+        )
+        assertFalse(DeletionDuration.isValidChipList(emptyList()))                       // at least one
+        assertFalse(DeletionDuration.isValidChipList(List(7) { (it + 1) * 60L }))        // too many
+        assertFalse(DeletionDuration.isValidChipList(listOf(60L, 60L)))                  // duplicates
+        assertFalse(DeletionDuration.isValidChipList(listOf(60L, 0L)))                   // invalid entry
+    }
+
+    @Test
+    fun upsert_adds_edits_and_rejects_bad_input() {
+        val base = listOf(900L, 3_600L)
+
+        // Add.
+        assertEquals(listOf(900L, 3_600L, 86_400L), DeletionDuration.upsertChip(base, null, 86_400L))
+        // Duplicate add is rejected.
+        assertNull(DeletionDuration.upsertChip(base, null, 900L))
+        // Invalid value is rejected.
+        assertNull(DeletionDuration.upsertChip(base, null, 0L))
+        // Full list rejects adds but accepts edits.
+        val full = List(6) { (it + 1) * 60L }
+        assertNull(DeletionDuration.upsertChip(full, null, 86_400L))
+        assertEquals(
+            listOf(60L, 120L, 180L, 240L, 300L, 3_600L),
+            DeletionDuration.upsertChip(full, 360L, 3_600L)
+        )
+        // Edit to an existing value is rejected.
+        assertNull(DeletionDuration.upsertChip(base, 900L, 3_600L))
+    }
+
+    @Test
+    fun remove_never_empties_the_list() {
+        assertNull(DeletionDuration.removeChip(listOf(900L), 900L))              // last one stays
+        assertEquals(listOf(900L), DeletionDuration.removeChip(listOf(900L, 3_600L), 3_600L))
+        assertNull(DeletionDuration.removeChip(listOf(900L, 3_600L), 42L))       // unknown value
+    }
+
+    @Test
+    fun encode_decode_round_trips() {
+        val chips = listOf(900L, 3_600L, 86_400L)
+        assertEquals(chips, DeletionDuration.decode(DeletionDuration.encode(chips)))
+        assertEquals(listOf(900L), DeletionDuration.decode("abc, 900, -5, 0"))
+        assertEquals(emptyList<Long>(), DeletionDuration.decode(null))
+        assertEquals(emptyList<Long>(), DeletionDuration.decode("  "))
+        // Out-of-range entries are dropped on decode.
+        assertEquals(listOf(60L), DeletionDuration.decode("60, ${DeletionDuration.MAX_SECONDS + 1}"))
     }
 }

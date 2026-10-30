@@ -7,10 +7,13 @@ enum class TimeUnit { SECONDS, MINUTES, HOURS, DAYS, NONE }
  * Deletion-duration rules. SnapTTL is free — every duration is available to
  * everyone; the only limits are sanity limits.
  *
- * - The quick timer (floating overlay, Settings, bulk actions) accepts any
- *   duration from 1 second up to [MAX_SECONDS] (one week).
- * - Longer retention is possible only through the overlay's date/time
- *   affordance, up to [MAX_TARGET_AHEAD_DAYS] ahead.
+ * - The user maintains their **own quick-delete options** (chips) that appear
+ *   as one-tap buttons on the floating overlay — up to [MAX_CHIPS] of them,
+ *   each between 1 second and [MAX_SECONDS] (one week).
+ * - The overlay's "Custom…" button opens a free-form timer for anything else
+ *   (same 1 s … 7 d range).
+ * - The overlay's date/time affordance targets an explicit moment in the
+ *   future, up to [MAX_TARGET_AHEAD_DAYS] ahead — the only way past a week.
  */
 object DeletionDuration {
 
@@ -24,8 +27,16 @@ object DeletionDuration {
     /** Date/time targets may be at most a year out. */
     const val MAX_TARGET_AHEAD_DAYS: Int = 365
 
-    /** Used by silent auto-delete until the user picks something else. */
-    const val DEFAULT_SECONDS: Long = 15L * SECONDS_PER_MINUTE
+    /** How many one-tap options the user may keep. */
+    const val MAX_CHIPS: Int = 6
+
+    /** Starter set (fully editable): 15 min, 1 h, 6 h, 1 day. */
+    val DEFAULT_CHIPS: List<Long> = listOf(
+        15L * SECONDS_PER_MINUTE,
+        SECONDS_PER_HOUR,
+        6L * SECONDS_PER_HOUR,
+        SECONDS_PER_DAY
+    )
 
     /** Quick-timer validation: 1 s … 7 d. */
     fun isValidSeconds(seconds: Long): Boolean = seconds in 1..MAX_SECONDS
@@ -35,6 +46,47 @@ object DeletionDuration {
         if (targetEpochMs <= nowEpochMs) return false
         val maxAheadMs = MAX_TARGET_AHEAD_DAYS * SECONDS_PER_DAY * 1_000L
         return targetEpochMs - nowEpochMs <= maxAheadMs
+    }
+
+    /** A user chip list: 1…[MAX_CHIPS] entries, each a valid duration, unique. */
+    fun isValidChipList(chips: List<Long>): Boolean =
+        chips.isNotEmpty() && chips.size <= MAX_CHIPS &&
+            chips.all { isValidSeconds(it) } && chips.distinct().size == chips.size
+
+    /**
+     * Adds (`oldSeconds == null`) or replaces a quick option. Returns the new
+     * sorted list, or null when the edit is rejected (invalid, duplicate, or
+     * the list is already full).
+     */
+    fun upsertChip(chips: List<Long>, oldSeconds: Long?, newSeconds: Long): List<Long>? {
+        if (!isValidSeconds(newSeconds)) return null
+        if (newSeconds != oldSeconds && newSeconds in chips) return null
+        val base = if (oldSeconds != null) chips - oldSeconds else chips
+        if (oldSeconds == null && base.size >= MAX_CHIPS) return null
+        return (base + newSeconds).sorted()
+    }
+
+    /**
+     * Removes a quick option; returns null when the option is unknown or the
+     * last remaining one would be removed.
+     */
+    fun removeChip(chips: List<Long>, seconds: Long): List<Long>? {
+        if (chips.size <= 1) return null
+        if (seconds !in chips) return null
+        return (chips - seconds).sorted()
+    }
+
+    /** Serialises the chip list for SharedPreferences (comma-separated seconds). */
+    fun encode(chips: List<Long>): String = chips.joinToString(",")
+
+    /** Parses a persisted chip list; invalid entries are dropped, result sorted. */
+    fun decode(raw: String?): List<Long> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split(',')
+            .mapNotNull { it.trim().toLongOrNull() }
+            .filter { isValidSeconds(it) }
+            .distinct()
+            .sorted()
     }
 
     /** Human label for round values: "30s", "45m", "3d". */
