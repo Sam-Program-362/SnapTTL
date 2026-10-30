@@ -9,11 +9,11 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.ViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import dev.snapttl.language.LocaleHelper
 import dev.snapttl.ui.theme.SnapTtlTheme
 
@@ -78,8 +78,8 @@ object CaptureOverlayWindows {
 
         val themed = LocaleHelper.wrap(context)
         val view = ComposeView(themed).apply {
-            ViewTreeLifecycleOwner.set(this, owner)
-            ViewTreeSavedStateRegistryOwner.set(this, owner)
+            setViewTreeLifecycleOwner(owner)
+            setViewTreeSavedStateRegistryOwner(owner)
             setContent {
                 SnapTtlTheme {
                     CaptureOverlay(
