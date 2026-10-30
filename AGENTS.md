@@ -26,7 +26,10 @@ Guidance for agents working in this repository.
 
 ## Tests
 
-- JUnit + Robolectric live in `app/src/test/java/dev/snapttl/**`.
+- JUnit + Robolectric live in `app/src/test/java/dev/snapttl/**`; key suites run
+  against Robolectric SDK 30/34/35 (Android 11/14/15).
+- Instrumented tests live in `app/src/androidTest/java/dev/snapttl/**` and run on the
+  emulator matrix (`.github/workflows/device-tests.yml`, API 30/34/35).
 - The Python mirror in `tools/` must stay consistent with `domain/`.
 
 ## Branches

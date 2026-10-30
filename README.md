@@ -19,7 +19,7 @@ SnapTTL identity. No networking, no accounts, no analytics, no ads in core.
 | `app/src/main/java/dev/snapttl/ui` | Jetpack Compose UI, ViewModels, overlay |
 | `app/schemas/` | Exported Room schemas (additive migrations) |
 | `tools/clean_room_core_tests.py` | Python mirror of core rules (runs without a JVM) |
-| `.github/workflows/` | verify · build APK · signed release |
+| `.github/workflows/` | verify · device tests (API 30/34/35) · build APK · signed release |
 | `docs/SPEC.md`, `context/context.md` | Spec + working context |
 
 ## Build & verify
@@ -31,6 +31,9 @@ or a machine with the SDK).
 ./gradlew testDebugUnitTest lint assembleDebug
 ```
 
+Instrumented tests run on the emulator matrix (Android 11 / 14 / 15) in CI
+(`.github/workflows/device-tests.yml`).
+
 Core-rule cross-check that needs no JVM:
 
 ```
@@ -39,7 +42,8 @@ python3 -m unittest discover -s tools -p 'clean_room_core_tests.py' -v
 
 ## Release
 
-- **Unsigned:** `.github/workflows/build-apk.yml` (workflow dispatch / main push).
+- **Unsigned:** `.github/workflows/build-apk.yml` (workflow dispatch / main push); also
+  runs an `aapt` badging/permission sanity check on the artifact.
 - **Signed:** `.github/workflows/release.yml` needs the secrets
   `SNAPTTL_KEYSTORE_B64`, `SNAPTTL_KEYSTORE_PASSWORD`, `SNAPTTL_KEY_ALIAS`,
   `SNAPTTL_KEY_PASSWORD`.

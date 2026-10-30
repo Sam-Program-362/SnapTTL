@@ -8,6 +8,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import dev.snapttl.SnapTtlApp
+import dev.snapttl.language.LocaleHelper
 import dev.snapttl.ui.theme.SnapTtlTheme
 
 /**
@@ -16,6 +17,10 @@ import dev.snapttl.ui.theme.SnapTtlTheme
  * manual LifecycleRegistry plumbing.
  */
 class CaptureOverlayActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(LocaleHelper.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

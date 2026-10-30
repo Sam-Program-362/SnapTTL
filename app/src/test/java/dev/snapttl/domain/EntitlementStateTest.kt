@@ -58,4 +58,22 @@ class EntitlementStateTest {
         assertTrue(state.hasUnlockedFeatures(now))
         assertFalse(state.hasUnlockedFeatures(now + 41L * 24 * 3600_000L))
     }
+
+    @Test
+    fun seconds_validation_matches_free_tier_window() {
+        val state = EntitlementState()
+        assertTrue(state.isValidDeletionScheduleSeconds(900, now))     // 15 min
+        assertTrue(state.isValidDeletionScheduleSeconds(2_700, now))   // 45 min
+        assertFalse(state.isValidDeletionScheduleSeconds(899, now))
+        assertFalse(state.isValidDeletionScheduleSeconds(2_701, now))
+        assertFalse(state.isValidDeletionScheduleSeconds(0, now))
+        assertFalse(state.isValidDeletionScheduleSeconds(-60, now))
+    }
+
+    @Test
+    fun seconds_validation_unlocks_advanced_chips() {
+        val state = EntitlementState(refillExpiryEpochMs = now + 20L * 24 * 60 * 60 * 1000)
+        assertTrue(state.isValidDeletionScheduleSeconds(30, now))       // 30 s advanced chip
+        assertTrue(state.isValidDeletionScheduleSeconds(259_200, now)) // 3 days advanced chip
+    }
 }

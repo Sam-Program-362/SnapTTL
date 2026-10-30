@@ -28,7 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.snapttl.R
 import dev.snapttl.domain.MiniGame
 import dev.snapttl.domain.MiniGameState
 import kotlinx.coroutines.delay
@@ -59,7 +61,7 @@ fun EasterEggScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Sweep Blitz", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.easter_egg_title), style = MaterialTheme.typography.titleLarge)
             Text(
                 "Tap the screenshots before they escape the shredder!",
                 style = MaterialTheme.typography.bodySmall
@@ -73,11 +75,11 @@ fun EasterEggScreen(onBack: () -> Unit) {
                             state = MiniGameState.PLAYING
                             score = 0
                             active = null
-                        }) { Text("Start game") }
+                        }) { Text(stringResource(R.string.easter_egg_start)) }
                     }
 
                     MiniGameState.PLAYING -> {
-                        Text("Score: $score", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.easter_egg_finish_score, score), style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(12.dp))
                         LazyVerticalGrid(columns = GridCells.Fixed(3)) {
                             items(GRID) { index ->
@@ -104,7 +106,7 @@ fun EasterEggScreen(onBack: () -> Unit) {
                     MiniGameState.FINISHED -> {
                         Text(MiniGame.titleFor(score), style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
-                        Text("Score: $score", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.easter_egg_finish_score, score), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -115,10 +117,10 @@ fun EasterEggScreen(onBack: () -> Unit) {
                     state = MiniGameState.READY
                     score = 0
                     active = null
-                }) { Text("Play again") }
+                }) { Text(stringResource(R.string.easter_egg_play_again)) }
             }
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onBack) { Text("Back") }
+            Button(onClick = onBack) { Text(stringResource(R.string.back)) }
         }
     }
 }

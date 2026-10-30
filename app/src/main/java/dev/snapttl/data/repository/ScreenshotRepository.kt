@@ -100,8 +100,11 @@ class ScreenshotRepository(
         var docUri: Uri? = null
         resolver.query(
             childrenUri,
-            arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
-            null,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME
+            ),
+            "${DocumentsContract.Document.COLUMN_DISPLAY_NAME} = ?",
             arrayOf(item.displayName),
             null
         )?.use { cursor ->

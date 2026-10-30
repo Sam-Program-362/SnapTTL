@@ -24,12 +24,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.snapttl.R
 import dev.snapttl.data.expiry.ExpiryQueueItem
 import dev.snapttl.domain.TimeUtils
 import dev.snapttl.ui.LocalSnapTtlFactory
+import kotlinx.coroutines.delay
 
 @Composable
 fun ScheduledScreen() {
@@ -38,15 +41,18 @@ fun ScheduledScreen() {
 
     Scaffold { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            Text("Scheduled for deletion", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.scheduled_title), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             if (items.isEmpty()) {
-                Text("Nothing is scheduled.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.scheduled_empty), style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(items, key = { it.id }) { item ->
-                        ScheduledCard(item = item, onDeleteNow = { viewModel.deleteNow(item) },
-                            onCancel = { viewModel.cancel(item) })
+                        ScheduledCard(
+                            item = item,
+                            onDeleteNow = { viewModel.deleteNow(item) },
+                            onCancel = { viewModel.cancel(item) }
+                        )
                     }
                 }
             }
@@ -59,7 +65,7 @@ private fun ScheduledCard(item: ExpiryQueueItem, onDeleteNow: () -> Unit, onCanc
     val now = remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(1000)
+            delay(1000)
             now.value = System.currentTimeMillis()
         }
     }
@@ -69,7 +75,7 @@ private fun ScheduledCard(item: ExpiryQueueItem, onDeleteNow: () -> Unit, onCanc
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Delete in ${TimeUtils.formatCountdown(remaining)}",
+                    stringResource(R.string.scheduled_delete_in, TimeUtils.formatCountdown(remaining)),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
@@ -77,8 +83,8 @@ private fun ScheduledCard(item: ExpiryQueueItem, onDeleteNow: () -> Unit, onCanc
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCancel) { Text("Cancel timer") }
-                Button(onClick = onDeleteNow) { Text("Delete now") }
+                OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.scheduled_cancel)) }
+                Button(onClick = onDeleteNow) { Text(stringResource(R.string.scheduled_delete_now)) }
             }
         }
     }

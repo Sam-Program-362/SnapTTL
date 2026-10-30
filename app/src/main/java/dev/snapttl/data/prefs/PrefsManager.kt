@@ -47,12 +47,21 @@ class PrefsManager(context: Context) {
         get() = app.getString(KEY_SCREENSHOT_TREE_URI, null)
         set(value) = app.edit().putString(KEY_SCREENSHOT_TREE_URI, value).apply()
 
-    var timeChips: List<Int>
+    /** Armed deletion chips, in seconds (see [dev.snapttl.domain.TimeChips]). */
+    var timeChips: List<Long>
         get() {
-            val raw = app.getString(KEY_TIME_CHIPS, "") ?: return emptyList()
-            return raw.split(',').filter { it.isNotBlank() }.map { it.trim().toIntOrNull() ?: 0 }.filter { it > 0 }
+            val raw = app.getString(KEY_TIME_CHIPS_SECONDS, null) ?: return TimeChipsDefaults.FREE
+            val parsed = dev.snapttl.domain.TimeChips.decode(raw)
+            return parsed.ifEmpty { TimeChipsDefaults.FREE }
         }
-        set(value) = app.edit().putString(KEY_TIME_CHIPS, value.joinToString(",")).apply()
+        set(value) = app.edit()
+            .putString(KEY_TIME_CHIPS_SECONDS, dev.snapttl.domain.TimeChips.encode(value))
+            .apply()
+
+    /** Whether the on-device OCR/label index may run in the background. */
+    var ocrIndexEnabled: Boolean
+        get() = app.getBoolean(KEY_OCR_INDEX_ENABLED, true)
+        set(value) = app.edit().putBoolean(KEY_OCR_INDEX_ENABLED, value).apply()
 
     // --- Retained counters (survive reinstall via backup rules) ---
 
@@ -76,9 +85,14 @@ class PrefsManager(context: Context) {
         const val KEY_TIME_TILL_NO_ADS = "time_till_no_ads"
         const val KEY_NO_DIALOG_AUTO_DELETE = "no_dialog_auto_delete_enabled"
         const val KEY_SCREENSHOT_TREE_URI = "screenshot_folder_tree_uri"
-        const val KEY_TIME_CHIPS = "time_chips"
+        const val KEY_TIME_CHIPS_SECONDS = "time_chips_seconds"
+        const val KEY_OCR_INDEX_ENABLED = "ocr_index_enabled"
 
         const val RETAIN_DELETED = "total_screenshots_deleted"
         const val RETAIN_MEMORY = "total_memory_saved"
+    }
+
+    private object TimeChipsDefaults {
+        val FREE = dev.snapttl.domain.TimeChips.FREE
     }
 }

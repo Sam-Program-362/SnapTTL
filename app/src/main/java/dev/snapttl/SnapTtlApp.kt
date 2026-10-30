@@ -9,21 +9,30 @@ import dev.snapttl.data.repository.ScreenshotRepository
 import dev.snapttl.data.repository.SearchRepository
 import dev.snapttl.data.search.SearchIndexDatabase
 import dev.snapttl.di.Services
+import dev.snapttl.domain.EntitlementState
 import dev.snapttl.language.LocaleHelper
 import dev.snapttl.service.NotificationChannels
 import dev.snapttl.state.CommonState
 import dev.snapttl.vision.MlKitScreenshotVision
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class SnapTtlApp : Application() {
 
     lateinit var services: Services
         private set
 
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override fun onCreate() {
         super.onCreate()
         NotificationChannels.create(this)
         services = buildServices()
         LocaleHelper.apply(this, services.prefs.languageCode)
+        // Crash/boot safety net: make sure every queued deletion has live work.
+        appScope.launch { services.expiryRepo.rescheduleAll() }
     }
 
     private fun buildServices(): Services {
@@ -46,25 +55,23 @@ class SnapTtlApp : Application() {
         container.vision = MlKitScreenshotVision(this)
         container.searchRepo = SearchRepository(container.searchDao, container.vision, container.screenshotRepo)
 
+        val entitlement = entitlement(container)
         container.commonState.update {
             CommonState(
                 serviceEnabled = container.prefs.serviceEnabled,
                 premiumPurchased = container.prefs.havePremiumPurchased,
                 adsRemoved = container.prefs.haveAdsRemoved,
-                refillDaysLeft = EntitlementDays.daysLeft(container.prefs.refillExpiryEpochMs),
+                refillDaysLeft = entitlement.refillDaysLeft(System.currentTimeMillis()),
                 timeChips = container.prefs.timeChips,
                 noDialogAutoDelete = container.prefs.noDialogAutoDeleteEnabled
             )
         }
         return container
     }
-}
 
-/** Shared refill computation so the Application and services agree on the cap. */
-private object EntitlementDays {
-    private val DAY_MS = 24L * 60L * 60L * 1000L
-    fun daysLeft(expiryMs: Long): Int {
-        if (expiryMs <= 0L) return 0
-        return ((expiryMs - System.currentTimeMillis()) / DAY_MS).coerceIn(0L, 40L).toInt()
-    }
+    private fun entitlement(container: Services) = EntitlementState(
+        premiumPurchased = container.prefs.havePremiumPurchased,
+        adsRemoved = container.prefs.haveAdsRemoved,
+        refillExpiryEpochMs = container.prefs.refillExpiryEpochMs
+    )
 }

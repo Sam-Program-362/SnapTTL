@@ -3,6 +3,7 @@
     <string name="app_tagline">Time-to-live for every screenshot.</string>
     <string name="fgs_subtype">Continuously monitors the system Screenshots directory so the app can instantly detect and respond to newly created screenshots. This is a background utility: users expect it to run persistently without reopening it after each device restart.</string>
 
+    <string name="back">Back</string>
     <string name="nav_home">Home</string>
     <string name="nav_scheduled">Scheduled</string>
     <string name="nav_screenshots">Screenshots</string>
@@ -10,21 +11,35 @@
     <string name="nav_settings">Settings</string>
 
     <string name="home_title">Home</string>
-    <string name="home_service_off">Screenshot monitor is off</string>
-    <string name="home_service_on">Screenshot monitor is on</string>
-    <string name="home_enable_service">Enable monitor</string>
+    <string name="home_service_off">Turn on the monitor to catch screenshots instantly.</string>
+    <string name="home_service_on">Watching for new screenshots.</string>
+    <string name="home_stats">Deleted %1$d · Saved %2$s</string>
     <string name="home_permissions_title">Required permissions</string>
     <string name="home_granted">Granted</string>
     <string name="home_missing">Grant</string>
+    <string name="home_chips_title">Deletion durations</string>
+    <string name="home_chips_hint">Tap to arm the durations offered when a screenshot is taken. Advanced durations need Premium or an active refill.</string>
+    <string name="home_premium_active">Premium unlocked.</string>
+    <string name="home_recent_title">Recent screenshots</string>
+
+    <string name="perm_notifications">Notifications</string>
+    <string name="perm_photos">Photos and videos</string>
+    <string name="perm_partial_photos">Photos (full or partial access)</string>
+    <string name="perm_storage">Storage</string>
+    <string name="perm_overlay">Display over other apps</string>
 
     <string name="scheduled_title">Scheduled for deletion</string>
     <string name="scheduled_empty">Nothing is scheduled.</string>
+    <string name="scheduled_delete_in">Delete in %1$s</string>
     <string name="scheduled_delete_now">Delete now</string>
     <string name="scheduled_cancel">Cancel timer</string>
 
     <string name="screenshots_title">All screenshots</string>
     <string name="screenshots_empty">No screenshots found on this device.</string>
-    <string name="screenshots_select_hint">Long-press a screenshot to select several, then set timers, cancel timers or share them.</string>
+    <string name="screenshots_refresh">Refresh</string>
+    <string name="screenshots_selected">%1$d selected</string>
+    <string name="screenshots_select_hint">Tick screenshots to select several, then set timers, cancel timers or delete them.</string>
+    <string name="screenshots_scheduled">Scheduled for deletion</string>
     <string name="screenshots_bulk_timer">Set delete timer</string>
     <string name="screenshots_bulk_cancel">Cancel timers</string>
     <string name="screenshots_bulk_share">Share</string>
@@ -33,15 +48,39 @@
     <string name="search_title">Search</string>
     <string name="search_hint">Search text or labels indexed on device</string>
     <string name="search_empty">No matches.</string>
+    <string name="search_index">Index screenshots</string>
     <string name="search_indexing">Indexing screenshots…</string>
+    <string name="search_indexing_running">Indexing…</string>
+    <string name="search_result_title">Screenshot #%1$d</string>
+    <string name="search_result_labels">Labels: %1$s</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_service">Screenshot monitor</string>
+    <string name="settings_permissions">Permissions</string>
+    <string name="settings_overlay">Display over other apps</string>
+    <string name="settings_overlay_granted">Granted — the floating delete-timer can appear.</string>
+    <string name="settings_overlay_missing">Missing — the floating delete-timer cannot appear.</string>
+    <string name="settings_folder_title">Screenshots folder</string>
+    <string name="settings_folder_desc">Pick the folder where screenshots are saved. SnapTTL deletes through this folder grant, which keeps silent deletion reliable on Android 11 and later.</string>
+    <string name="settings_folder_current">A screenshots folder is connected.</string>
+    <string name="settings_folder_pick">Choose folder</string>
+    <string name="settings_folder_clear">Clear</string>
+    <string name="settings_chips_title">Deletion durations</string>
+    <string name="settings_chips_desc">Armed durations are offered on the floating delete-timer and used by silent auto-delete.</string>
     <string name="settings_language">Language</string>
     <string name="settings_system_language">System default</string>
+    <string name="settings_ocr">On-device search index</string>
+    <string name="settings_ocr_desc">OCR text and image labels are indexed on-device only.</string>
+    <string name="settings_subscriptions">Subscriptions</string>
     <string name="settings_premium">Premium</string>
     <string name="settings_buy_premium">Buy Premium</string>
+    <string name="settings_ads_removed">Ads removed</string>
     <string name="settings_remove_ads">Remove ads</string>
+    <string name="settings_refill">Watch ad · +20 days refill</string>
+    <string name="settings_autostart_title">Background auto-start</string>
+    <string name="settings_autostart_desc">Aggressive battery killers may stop the monitor. Open the OEM auto-start screen to allow it.</string>
+    <string name="settings_autostart_open">Open auto-start settings</string>
+    <string name="settings_autostart_none">No OEM auto-start routing is needed on this device.</string>
     <string name="settings_about">SnapTTL %1$s — time-to-live for every screenshot.</string>
 
     <string name="extra_features_title">Extra features</string>
@@ -49,7 +88,11 @@
     <string name="extra_silent_premium_only">Premium-only feature; not covered by a refill.</string>
     <string name="extra_refill_days">%1$d days of ad-free refill left</string>
 
+    <string name="overlay_new_screenshot">New screenshot</string>
+    <string name="overlay_choose">Choose how long to keep it, or delete it right away.</string>
     <string name="overlay_delete_in">This screenshot will be deleted in %1$s</string>
+    <string name="overlay_delete_in_fmt">Delete in %1$s</string>
+    <string name="overlay_delete_now">Delete now</string>
     <string name="overlay_keep">Keep</string>
     <string name="overlay_close">Close</string>
     <string name="overlay_share_and_delete">Share &amp; delete in %1$s</string>
@@ -63,6 +106,7 @@
     <string name="easter_egg_subtitle">Tap the screenshots before they escape the shredder!</string>
     <string name="easter_egg_start">Start game</string>
     <string name="easter_egg_finish_score">Score: %1$d</string>
+    <string name="easter_egg_play_again">Play again</string>
 
     <string name="channel_capture">Capture monitor</string>
     <string name="channel_capture_desc">Ongoing notification while SnapTTL watches for screenshots.</string>

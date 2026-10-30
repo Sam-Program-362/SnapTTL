@@ -13,6 +13,11 @@ import dev.snapttl.service.ToastHelper
  * (SAF tree first, MediaStore fallback), updates the retained counters and removes the
  * expiry row plus its search-index entry.
  *
+ * Failure policy:
+ * - the media item is already gone ⇒ success (nothing left to do),
+ * - the deletion itself failed ⇒ `retry()` with the queue row kept, so the timer is
+ *   not lost; after [MAX_ATTEMPTS] the row stays for the user to act on in Scheduled.
+ *
  * Clean-room equivalent of Mark's `DeleteScreenshotWorkManager`.
  */
 class ExpiryPurgeWorker(
@@ -24,34 +29,46 @@ class ExpiryPurgeWorker(
         val app = applicationContext as SnapTtlApp
         val services = app.services
 
-        val rowId = inputData.getLong(KEY_ROW_ID, -1L)
-        val screenshotId = inputData.getLong(KEY_SCREENSHOT_ID, -1L)
-        val item = services.expiryRepo.findById(rowId) ?: return Result.success()
+        val workId = inputData.getString(KEY_WORK_ID)
+        val item = when {
+            !workId.isNullOrBlank() -> services.expiryRepo.findByWorkManagerId(workId)
+            else -> services.expiryRepo.findById(inputData.getLong(KEY_ROW_ID, -1L))
+        } ?: return Result.success() // cancelled while queued — nothing to do
 
         val media = services.screenshotRepo.findScreenshot(item.screenshotId)
-        val outcome = if (media != null) {
-            services.screenshotRepo.deleteScreenshot(media)
-        } else {
-            DeletionOutcome.FAILED
+        if (media == null) {
+            // Already deleted elsewhere (manual delete, other tool). Clean up only.
+            services.searchDao.deleteByScreenshotId(item.screenshotId)
+            services.expiryRepo.onPurged(item.screenshotId)
+            return Result.success()
         }
 
-        if (outcome == DeletionOutcome.DELETED && media != null) {
-            services.prefs.totalScreenshotsDeleted += 1
-            services.prefs.totalMemorySavedBytes += media.sizeBytes
-            services.analytics.logEvent("screenshot_deleted")
-        } else {
-            services.analytics.logEvent("screenshot_deleted_failed")
-        }
+        val outcome = services.screenshotRepo.deleteScreenshot(media)
 
-        services.searchDao.deleteByScreenshotId(item.screenshotId)
-        services.expiryRepo.cancel(item.id)
-
-        if (outcome != DeletionOutcome.DELETED) {
-            ToastHelper.show(appContext, appContext.getString(R.string.toast_delete_failed))
-        } else {
-            ToastHelper.show(appContext, appContext.getString(R.string.toast_deleted))
+        return when (outcome) {
+            DeletionOutcome.DELETED -> {
+                services.prefs.totalScreenshotsDeleted += 1
+                services.prefs.totalMemorySavedBytes += media.sizeBytes
+                services.analytics.logEvent("screenshot_deleted")
+                services.searchDao.deleteByScreenshotId(item.screenshotId)
+                services.expiryRepo.onPurged(item.screenshotId)
+                ToastHelper.show(applicationContext, applicationContext.getString(R.string.toast_deleted))
+                Result.success()
+            }
+            DeletionOutcome.FAILED -> {
+                services.analytics.logEvent("screenshot_deleted_failed")
+                if (runAttemptCount >= MAX_ATTEMPTS) {
+                    // Keep the row so it stays visible under Scheduled; stop retrying.
+                    ToastHelper.show(
+                        applicationContext,
+                        applicationContext.getString(R.string.toast_delete_failed)
+                    )
+                    Result.success()
+                } else {
+                    Result.retry()
+                }
+            }
         }
-        return Result.success()
     }
 
     companion object {
@@ -59,5 +76,8 @@ class ExpiryPurgeWorker(
         const val KEY_ROW_ID = "row_id"
         const val KEY_SCREENSHOT_ID = "screenshot_id"
         const val KEY_FILE_PATH = "file_path"
+
+        /** Deletion retries before giving up (exponential backoff between attempts). */
+        const val MAX_ATTEMPTS = 3
     }
 }

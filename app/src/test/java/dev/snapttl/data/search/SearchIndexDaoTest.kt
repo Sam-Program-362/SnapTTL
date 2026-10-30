@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [30, 34, 35])
 class SearchIndexDaoTest {
 
     private lateinit var database: SearchIndexDatabase
