@@ -84,11 +84,14 @@ private enum class OverlayMode { OPTIONS, TIMER, DATETIME }
  *
  * - **Centred** on screen (dead-centre is on the thumb arc, clear of the
  *   status-bar shading on Android 15/16 and of the gesture-nav area; same
- *   spot every time = spatial muscle memory). Tapping anywhere outside the
- *   card keeps the screenshot and dismisses it.
+ *   spot every time = spatial muscle memory). The card deliberately does
+ *   NOT close on outside touches — it closes only on an explicit choice
+ *   (or the idle timeout), so a stray tap never loses the popup.
  * - **Two panes**: the screenshot gets its own side — a full-image (`Fit`)
  *   preview column so the whole shot is visible while choosing — next to the
- *   controls, so the card stays low and compact instead of tall.
+ *   controls, so the card stays low and compact instead of tall. The card is
+ *   sized **relative to the device** (nearly full width, capped at 520 dp)
+ *   so buttons breathe on every screen size instead of being squeezed.
  * - **Controls**: the user's own one-tap durations as a fixed 2-column grid
  *   (stable positions = muscle memory), a delete-now icon, a filled
  *   "Custom…" (slider), a date & time icon, and a clearly distinct
@@ -175,7 +178,8 @@ fun CaptureOverlay(
     Card(
         modifier = Modifier
             .padding(horizontal = 12.dp)
-            .widthIn(max = 336.dp)
+            .widthIn(max = 520.dp)
+            .fillMaxWidth()
             .graphicsLayer {
                 alpha = entry
                 val scale = 0.92f + 0.08f * entry
@@ -186,7 +190,7 @@ fun CaptureOverlay(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Row(modifier = Modifier.padding(10.dp)) {
+        Row(modifier = Modifier.padding(12.dp)) {
             PreviewSide(
                 model = media?.uri ?: "",
                 contentDescription = displayName.ifBlank {
@@ -255,7 +259,7 @@ private fun PreviewSide(
 ) {
     Box(
         modifier = Modifier
-            .width(88.dp)
+            .width(96.dp)
             .height(212.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -342,7 +346,7 @@ private fun OptionsMode(
                 rowOptions.forEach { option ->
                     OutlinedButton(
                         onClick = { onChoose(option) },
-                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(DeletionDuration.label(option), maxLines = 1)
@@ -365,7 +369,7 @@ private fun OptionsMode(
             }
             Button(
                 onClick = onCustom,
-                contentPadding = PaddingValues(horizontal = 8.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp))

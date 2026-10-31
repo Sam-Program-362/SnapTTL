@@ -181,8 +181,28 @@ minutes on standard runners.
 - Hardening: `.gitignore` now also excludes `*.jks`, `*.keystore`, `*.p12`,
   `*.pem`, `.env`.
 
-## Session log (2026-10-30, arena/85a2efc2-snapttl)
+## User feedback round 6 (2026-10-31, sizing + dismissal semantics)
+User tested v0.1.3 (with a Mark-app comparison screenshot) — three fixes:
 
+1. **Card was squeezed.** A fixed 336 dp card looks small on real devices and
+   the buttons felt cramped. The card is now sized **relative to the device**:
+   `padding(h=12) + widthIn(max=520) + fillMaxWidth()` → nearly full width
+   (~387 dp on a 411 dp phone, capped on tablets), preview column 88 → 96 dp,
+   card inner padding 12 dp, chip/Custom paddings roomier (12 dp).
+2. **Outside touches must not close the popup.** Round 5's
+   tap-outside-to-keep is removed (`FLAG_WATCH_OUTSIDE_TOUCH` + listener
+   gone). The card now closes **only** on an explicit choice — chip, custom
+   slider, date/time, delete-now, Keep — or the 45 s idle timeout, which
+   stays as the "never sticks to the screen forever" guarantee. (Selection
+   still closes instantly; nothing changed there.)
+3. **Update the release in place.** Per the user's preference, v0.1.3 is
+   **updated rather than superseded**: versionName stays `0.1.3`,
+   versionCode 4 → 5; after merge, the `v0.1.3` tag is re-pointed to the new
+   main commit and the release workflow re-runs — its `gh release upload
+   --clobber` replaces `app-release.apk` on the existing release (same URL,
+   notes preserved). The tag move is recorded here for the audit trail.
+
+## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).
    Main problems: CI red on main (ML Kit imports, `Intent.component` shadowing) and the
