@@ -1,9 +1,11 @@
 package dev.snapttl.ui.overlay
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Bundle
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
@@ -61,6 +63,7 @@ object CaptureOverlayWindows {
     )
 
     /** Returns true when the overlay window is up. */
+    @SuppressLint("ClickableViewAccessibility")
     fun show(
         context: Context,
         screenshotId: Long,
@@ -90,6 +93,18 @@ object CaptureOverlayWindows {
                     )
                 }
             }
+            // FLAG_WATCH_OUTSIDE_TOUCH delivers ACTION_OUTSIDE here when the
+            // user taps anything outside the card: treat that as "keep the
+            // screenshot" and dismiss — quick and dynamic, like the in-card
+            // Keep button.
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                    dismiss()
+                    true
+                } else {
+                    false
+                }
+            }
         }
 
         val params = WindowManager.LayoutParams(
@@ -97,14 +112,14 @@ object CaptureOverlayWindows {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
         ).apply {
-            // Bottom-centre: near the thumb, out of the way of the content the
-            // user just captured, and never blocking the status bar area the
-            // system shades on Android 15/16.
-            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            y = dpToPx(view.context, 8)
+            // Dead-centre: on the thumb arc for one-handed use, clear of the
+            // status-bar shading (Android 15/16) and the gesture-nav area,
+            // and the same fixed spot every time — spatial muscle memory.
+            gravity = Gravity.CENTER
         }
 
         return try {
@@ -126,7 +141,4 @@ object CaptureOverlayWindows {
         runCatching { active.owner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY) }
         runCatching { active.windowManager.removeView(active.view) }
     }
-
-    private fun dpToPx(context: Context, dp: Int): Int =
-        (dp * context.resources.displayMetrics.density).toInt().coerceAtLeast(0)
 }

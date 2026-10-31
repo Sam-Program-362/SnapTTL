@@ -9,6 +9,13 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# Signing material — never commit (release signing uses GitHub Secrets)
+*.jks
+*.keystore
+*.p12
+*.pem
+.env
+
 # Android Studio
 *.apk
 *.ap_

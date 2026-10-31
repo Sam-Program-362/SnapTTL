@@ -3,15 +3,40 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!--
+      SnapTTL mark: "the dissolving screenshot" — a photo frame whose
+      bottom-right corner breaks into shrinking dots drifting away. One glyph
+      tells the whole product story: screenshots that fade themselves out.
+      Deliberately not a clock, not the name.
+    -->
+    <!-- Frame, open at the bottom-right corner. -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,36 A18,18 0 1,0 54,72 A18,18 0 1,0 54,36 Z" />
-    <path
-        android:strokeColor="#FF4500"
-        android:strokeWidth="6"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFF8F4"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
-        android:pathData="M54,54 L54,40 M54,54 L64,59" />
+        android:pathData="M40,30 L68,30 A10,10 0 0 1 78,40 L78,59" />
     <path
-        android:fillColor="#FF4500"
-        android:pathData="M46,54 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+        android:fillColor="#00000000"
+        android:strokeColor="#FFF8F4"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M59,78 L40,78 A10,10 0 0 1 30,68 L30,40 A10,10 0 0 1 40,30" />
+    <!-- The universal "image" tell: sun + mountain. -->
+    <path
+        android:fillColor="#FFF8F4"
+        android:pathData="M46,42 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+    <path
+        android:fillColor="#FFF8F4"
+        android:pathData="M36,64 L47,49 L54,58 L59,52 L68,64 Z" />
+    <!-- The corner, dissolving: three dots, smaller and further out. -->
+    <path
+        android:fillColor="#FFF8F4"
+        android:pathData="M74.5,65.5 m-3.4,0 a3.4,3.4 0 1,0 6.8,0 a3.4,3.4 0 1,0 -6.8,0" />
+    <path
+        android:fillColor="#FFF8F4"
+        android:pathData="M79,72 m-2.4,0 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0" />
+    <path
+        android:fillColor="#FFF8F4"
+        android:pathData="M82.5,78.5 m-1.6,0 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0" />
 </vector>

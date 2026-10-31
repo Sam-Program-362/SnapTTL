@@ -103,7 +103,83 @@ Shipped: branch `arena/30a4731e-snapttl`, PR **#11** merged `2026-10-30T23:15Z`
 pull_request events; **signed release v0.1.2** published (release run
 `41143413043` ✓, `app-release.apk` 89,782,318 bytes).
 
+## User feedback round 5 (2026-10-31, layout maturity + identity)
+User verdict on v0.1.2: "Everything is perfect 👌🏻" with four refinements,
+implemented on `arena/47457152-snapttl` (commit `6a2c0a5`, PR #13 **open,
+blocked on CI — see below**):
+
+1. **Side-by-side layout with a full-image preview** (modelled on the Mark
+   window in the user's comparison screenshot): the screenshot gets **its own
+   side** — an 88 dp × 212 dp column with `ContentScale.Fit`, so the *whole*
+   shot is visible while choosing (better for text-heavy screenshots than the
+   96 dp crop strip) — and it takes height instead of width, keeping the card
+   low and compact. Card `widthIn(max = 336.dp)`; controls pane is the
+   weighted remainder.
+2. **Position: centred.** Persona debate (recorded per user request):
+   - *One-handed reach*: dead-centre sits on the thumb arc; bottom collided
+     with the gesture-nav area, top is the farthest point and conflicts with
+     the Android 15/16 screenshot shading. → centre wins.
+   - *Muscle memory*: the geometric centre is the same fixed spot on every
+     device and every launch — spatial consistency. → centre wins.
+   - *First-time user*: a centred card reads as a deliberate decision point
+     ("what should happen to this shot?"), not a system toast. → centre wins.
+   - *Content occlusion* (the one real cost of centring): paid down with
+     instant-close on selection, the 45 s idle close, and a **new
+     tap-outside-to-keep** path (`FLAG_WATCH_OUTSIDE_TOUCH` +
+     `ACTION_OUTSIDE` → dismiss), matching the in-card Keep button.
+   - Net: `Gravity.CENTER`, `WRAP_CONTENT` window, entry animation is now
+     fade + gentle scale-up (a slide no longer makes sense off-centre).
+3. **Keep instead of ✕**: the preview's close badge is gone; keeping the
+   screenshot (no schedule) is a dedicated, visually distinct
+   **Keep ✓** tonal button in the secondary (tan) family — separate from the
+   amber filled "Custom…" button and the red delete icon. Quick options moved
+   from a scrolling row to a **fixed 2-column grid** (stable chip coordinates
+   = muscle memory). Share stays as a badge on the preview (bottom-centre,
+   over a soft scrim).
+4. **Un-faded theme**: the round-4 ember read washed-out. Dark primary
+   `#FFB86B` → **`#FF8A3D`** (rich ember, still far from neon `#FF4500`),
+   `primaryContainer` `#6A3B0D` → `#8A4A10`, `secondaryContainer` slightly
+   warmer; light primary `#A13E00` → **`#C24900`** (contrast-checked ≥ 4.5:1
+   on the warm-white background).
+5. **Permanent logo — "the dissolving screenshot"** (professional-designer
+   brief: not a clock, not the name, anything that users will come to map to
+   SnapTTL): a photo frame whose bottom-right corner breaks into shrinking
+   dots drifting away — one glyph tells the whole product story. Shipped as:
+   - `drawable/ic_launcher_foreground.xml` — white glyph on an ember gradient
+     (`ic_launcher_background.xml`, `#FF9A3D → #E05700`), doubling as the
+     Android 13+ monochrome/themed icon;
+   - `drawable/snapttl_logo.xml` — 24 dp line version (status-bar safe) used
+     by both notification paths;
+   - `art/logo.svg` — canonical SVG source of the mark.
+
+Strings: 119 → 118 (removed now-unused `overlay_close`). Version
+**0.1.3 / versionCode 4**.
+
+### Round-5 CI blocker (resolved 2026-10-31 by making the repo public)
+GitHub Actions refused to start **any** jobs — "The job was not started
+because recent account payments have failed or your spending limit needs to
+be increased" (first seen on the round-4 docs PR's duplicate runs, then on
+push runs). The user made the repository **public**, restoring free Actions
+minutes on standard runners.
+
+**Public-repo security audit (2026-10-31, full history):**
+- Working tree: no passwords, API keys, credential-bearing URLs, or private
+  tokens. Signing uses only `${{ secrets.SNAPTTL_KEYSTORE_* }}` env vars;
+  `GH_TOKEN` is the ephemeral workflow token. URL inventory is public/benign
+  (Android schemas, Apache license, this repo, Gradle links).
+- Commit history: all 69 commits' diffs scanned for private keys,
+  GitHub/AWS/Google/Slack/OpenAI token formats, credential URLs, and
+  hardcoded keystore passwords — zero hits. No keystore/`.env`/
+  `local.properties` file was ever committed; only expected paths exist in
+  history. (Note: the sandbox clone was shallow; it was unshallowed first so
+  the audit covered the real history.)
+- Runners: standard only — 4× `ubuntu-latest`, 1× `ubuntu-22.04`. No large
+  runners.
+- Hardening: `.gitignore` now also excludes `*.jks`, `*.keystore`, `*.p12`,
+  `*.pem`, `.env`.
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
+
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).
    Main problems: CI red on main (ML Kit imports, `Intent.component` shadowing) and the
@@ -183,7 +259,9 @@ pull_request events; **signed release v0.1.2** published (release run
   to exist; the workflow now creates it with `--generate-notes` when missing.
 
 ## Pending / next steps
-- [x] CI green on Verify + Device tests (API 30/34/35).
+- [x] **GitHub Actions billing — resolved** by making the repository public
+      (2026-10-31); standard runners, full-history security audit clean.
+- [x] CI green on Verify + Device tests (API 30/34/35) — through round 4.
 - [x] Room schema JSONs committed to `app/schemas/`.
 - [x] Build APK workflow green — unsigned artifacts on every main push.
 - [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2), PR #8/#9 (round 3), PR #11
