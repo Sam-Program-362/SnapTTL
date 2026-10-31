@@ -105,8 +105,11 @@ pull_request events; **signed release v0.1.2** published (release run
 
 ## User feedback round 5 (2026-10-31, layout maturity + identity)
 User verdict on v0.1.2: "Everything is perfect 👌🏻" with four refinements,
-implemented on `arena/47457152-snapttl` (commit `6a2c0a5`, PR #13 **open,
-blocked on CI — see below**):
+implemented on `arena/47457152-snapttl` (commits `6a2c0a5` + `aab872d`;
+PR **#13** merged `2026-10-31T06:32Z`, main @ `173d141`; Verify
+`41176669941`/`41176666664` ✓ and Device tests `41176669807`/`41176666677` ✓
+on Android 11/14/15; **signed release v0.1.3** published, release run
+`41177035712` ✓, `app-release.apk` 89,782,894 bytes):
 
 1. **Side-by-side layout with a full-image preview** (modelled on the Mark
    window in the user's comparison screenshot): the screenshot gets **its own
@@ -237,6 +240,14 @@ minutes on standard runners.
 ## Verification status
 - Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **17 tests pass**
   (duration model + chip-list rules + snap ladder).
+- **Round 5 (centred two-pane popup + Keep + ember + logo) green on `main`**
+  @ `173d141` (PR #13): Verify + Device tests (Android 11/14/15) ✓ on both
+  push and pull_request events.
+- **Signed release v0.1.3 published** —
+  https://github.com/Sam-Program-362/SnapTTL/releases/tag/v0.1.3
+  (`app-release.apk`, 89,782,894 bytes, versionCode 4; release run
+  `41177035712` ✓). Repository made public 2026-10-31 (restores Actions
+  minutes; full-history security audit clean — see round-5 section).
 - **Round 4 (compact popup + slider + ember theme) green on `main`** @ `d18afa2`
   (PR #11): Verify `41141564454`/`41142462870` ✓, Device tests
   `41141564434`/`41142462947` ✓ (Android 11/14/15).
@@ -261,18 +272,19 @@ minutes on standard runners.
 ## Pending / next steps
 - [x] **GitHub Actions billing — resolved** by making the repository public
       (2026-10-31); standard runners, full-history security audit clean.
-- [x] CI green on Verify + Device tests (API 30/34/35) — through round 4.
+- [x] CI green on Verify + Device tests (API 30/34/35) — through round 5.
 - [x] Room schema JSONs committed to `app/schemas/`.
 - [x] Build APK workflow green — unsigned artifacts on every main push.
 - [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2), PR #8/#9 (round 3), PR #11
-      (round 4) merged; main fully green.
-- [x] Signed releases v0.1.0, v0.1.1 and v0.1.2 tagged/published with the
-      signed APK attached.
-- [ ] User re-tests the **signed v0.1.2** APK on the Android 16 device: compact
-      bottom-centre popup after screenshot, wide preview strip, one-tap chips,
-      slider custom timer, wheel date/time, immediate auto-close, ember theme
-      (dark + light), and the notification fallback when the overlay permission
-      is off.
+      (round 4), PR #13 (round 5) merged; main fully green.
+- [x] Signed releases v0.1.0–v0.1.3 tagged/published with the signed APK
+      attached.
+- [ ] User re-tests the **signed v0.1.3** APK on the Android 16 device:
+      centred two-pane popup after screenshot, full-image preview side,
+      fixed-grid one-tap chips, Keep button, tap-outside-to-keep, slider
+      custom timer, wheel date/time, immediate auto-close, un-faded ember
+      theme (dark + light), new logo, and the notification fallback when the
+      overlay permission is off.
 - [ ] If the ad-refill idea is revived, see "Deferred monetization option" above.
 
 ## Late-stage fixes found by CI
