@@ -104,8 +104,9 @@ pull_request events; **signed release v0.1.2** published (release run
 `41143413043` ✓, `app-release.apk` 89,782,318 bytes).
 
 ## User feedback round 5 (2026-10-31, layout maturity + identity)
-User verdict on v0.1.2: "Everything is perfect 👌🏻" with four refinements, all
-shipped in this round (v0.1.3, PR #13):
+User verdict on v0.1.2: "Everything is perfect 👌🏻" with four refinements,
+implemented on `arena/47457152-snapttl` (commit `6a2c0a5`, PR #13 **open,
+blocked on CI — see below**):
 
 1. **Side-by-side layout with a full-image preview** (modelled on the Mark
    window in the user's comparison screenshot): the screenshot gets **its own
@@ -153,6 +154,15 @@ shipped in this round (v0.1.3, PR #13):
 
 Strings: 119 → 118 (removed now-unused `overlay_close`). Version
 **0.1.3 / versionCode 4**.
+
+### Round-5 CI blocker (2026-10-31)
+GitHub Actions refuses to start **any** jobs — "The job was not started
+because recent account payments have failed or your spending limit needs to
+be increased" (first seen on the round-4 docs PR's duplicate runs, now on
+push runs too). This is account billing, not code. Per the AGENTS.md
+CI-green contract, PR #13 stays **unmerged** and the v0.1.3 tag/release is
+**on hold** until the billing issue is fixed; then retrigger (push or
+`gh run rerun`) and follow the usual merge → tag → release flow.
 
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
@@ -235,7 +245,11 @@ Strings: 119 → 118 (removed now-unused `overlay_close`). Version
   to exist; the workflow now creates it with `--generate-notes` when missing.
 
 ## Pending / next steps
-- [x] CI green on Verify + Device tests (API 30/34/35).
+- [ ] **BLOCKER: GitHub Actions billing** — no jobs can start ("recent
+      account payments have failed or your spending limit needs to be
+      increased"). Fix in GitHub Settings → Billing & plans, then retrigger
+      CI for PR #13 (round 5), merge it, and tag/publish v0.1.3.
+- [x] CI green on Verify + Device tests (API 30/34/35) — through round 4.
 - [x] Room schema JSONs committed to `app/schemas/`.
 - [x] Build APK workflow green — unsigned artifacts on every main push.
 - [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2), PR #8/#9 (round 3), PR #11
