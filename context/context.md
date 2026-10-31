@@ -155,14 +155,28 @@ blocked on CI — see below**):
 Strings: 119 → 118 (removed now-unused `overlay_close`). Version
 **0.1.3 / versionCode 4**.
 
-### Round-5 CI blocker (2026-10-31)
-GitHub Actions refuses to start **any** jobs — "The job was not started
+### Round-5 CI blocker (resolved 2026-10-31 by making the repo public)
+GitHub Actions refused to start **any** jobs — "The job was not started
 because recent account payments have failed or your spending limit needs to
-be increased" (first seen on the round-4 docs PR's duplicate runs, now on
-push runs too). This is account billing, not code. Per the AGENTS.md
-CI-green contract, PR #13 stays **unmerged** and the v0.1.3 tag/release is
-**on hold** until the billing issue is fixed; then retrigger (push or
-`gh run rerun`) and follow the usual merge → tag → release flow.
+be increased" (first seen on the round-4 docs PR's duplicate runs, then on
+push runs). The user made the repository **public**, restoring free Actions
+minutes on standard runners.
+
+**Public-repo security audit (2026-10-31, full history):**
+- Working tree: no passwords, API keys, credential-bearing URLs, or private
+  tokens. Signing uses only `${{ secrets.SNAPTTL_KEYSTORE_* }}` env vars;
+  `GH_TOKEN` is the ephemeral workflow token. URL inventory is public/benign
+  (Android schemas, Apache license, this repo, Gradle links).
+- Commit history: all 69 commits' diffs scanned for private keys,
+  GitHub/AWS/Google/Slack/OpenAI token formats, credential URLs, and
+  hardcoded keystore passwords — zero hits. No keystore/`.env`/
+  `local.properties` file was ever committed; only expected paths exist in
+  history. (Note: the sandbox clone was shallow; it was unshallowed first so
+  the audit covered the real history.)
+- Runners: standard only — 4× `ubuntu-latest`, 1× `ubuntu-22.04`. No large
+  runners.
+- Hardening: `.gitignore` now also excludes `*.jks`, `*.keystore`, `*.p12`,
+  `*.pem`, `.env`.
 
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
@@ -245,10 +259,8 @@ CI-green contract, PR #13 stays **unmerged** and the v0.1.3 tag/release is
   to exist; the workflow now creates it with `--generate-notes` when missing.
 
 ## Pending / next steps
-- [ ] **BLOCKER: GitHub Actions billing** — no jobs can start ("recent
-      account payments have failed or your spending limit needs to be
-      increased"). Fix in GitHub Settings → Billing & plans, then retrigger
-      CI for PR #13 (round 5), merge it, and tag/publish v0.1.3.
+- [x] **GitHub Actions billing — resolved** by making the repository public
+      (2026-10-31); standard runners, full-history security audit clean.
 - [x] CI green on Verify + Device tests (API 30/34/35) — through round 4.
 - [x] Room schema JSONs committed to `app/schemas/`.
 - [x] Build APK workflow green — unsigned artifacts on every main push.
