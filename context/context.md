@@ -202,6 +202,16 @@ User tested v0.1.3 (with a Mark-app comparison screenshot) — three fixes:
    --clobber` replaces `app-release.apk` on the existing release (same URL,
    notes preserved). The tag move is recorded here for the audit trail.
 
+Shipped: branch `arena/81c92f57-snapttl`, PR **#15** merged
+`2026-10-31T07:15Z` (main @ `f72431c`); Verify `41179132818`/`41179479239` ✓
+and Device tests `41179132682`/`41179479416` ✓ (Android 11/14/15, push and
+pull_request events). Tag `v0.1.3` force-repointed `173d141` → `f72431c`;
+release run `41179912257` ✓ re-uploaded `app-release.apk` (89,782,894 bytes,
+asset re-dated 07:19:31Z; same byte count as before — zip alignment absorbs
+the small constant deltas, and the run demonstrably built from `f72431c`).
+Release notes now carry an in-place-update annotation. The in-place update
+kept **versionCode 5 / versionName 0.1.3**.
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).
@@ -260,6 +270,10 @@ User tested v0.1.3 (with a Mark-app comparison screenshot) — three fixes:
 ## Verification status
 - Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **17 tests pass**
   (duration model + chip-list rules + snap ladder).
+- **Round 6 (device-proportional card + selection-only dismissal) green on
+  `main`** @ `f72431c` (PR #15): Verify + Device tests ✓ on both events;
+  **release v0.1.3 updated in place** (tag re-pointed, APK clobbered by run
+  `41179912257` ✓, versionCode 5).
 - **Round 5 (centred two-pane popup + Keep + ember + logo) green on `main`**
   @ `173d141` (PR #13): Verify + Device tests (Android 11/14/15) ✓ on both
   push and pull_request events.
@@ -298,13 +312,13 @@ User tested v0.1.3 (with a Mark-app comparison screenshot) — three fixes:
 - [x] PR #2/#3/#4 (round 1), PR #5/#6 (round 2), PR #8/#9 (round 3), PR #11
       (round 4), PR #13 (round 5) merged; main fully green.
 - [x] Signed releases v0.1.0–v0.1.3 tagged/published with the signed APK
-      attached.
-- [ ] User re-tests the **signed v0.1.3** APK on the Android 16 device:
-      centred two-pane popup after screenshot, full-image preview side,
-      fixed-grid one-tap chips, Keep button, tap-outside-to-keep, slider
-      custom timer, wheel date/time, immediate auto-close, un-faded ember
-      theme (dark + light), new logo, and the notification fallback when the
-      overlay permission is off.
+      attached (v0.1.3 updated in place 2026-10-31 with the round-6 fixes).
+- [ ] User re-tests the **updated signed v0.1.3 (versionCode 5)** APK on the
+      Android 16 device: device-width centred popup, full-image preview side,
+      fixed-grid one-tap chips, Keep button (outside taps must NOT dismiss),
+      slider custom timer, wheel date/time, immediate auto-close on
+      selection, 45 s idle close, un-faded ember theme, new logo, and the
+      notification fallback when the overlay permission is off.
 - [ ] If the ad-refill idea is revived, see "Deferred monetization option" above.
 
 ## Late-stage fixes found by CI
