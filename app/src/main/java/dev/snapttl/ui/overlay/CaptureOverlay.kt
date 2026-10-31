@@ -12,7 +12,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,20 +23,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -58,9 +56,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -80,17 +80,22 @@ private enum class OverlayMode { OPTIONS, TIMER, DATETIME }
 
 /**
  * Floating delete-timer card shown over other apps — the heart of SnapTTL's
- * muscle memory, modelled on the reference app's compact bottom bar:
+ * muscle memory, mirroring the reference app's centred two-pane design:
  *
- * - a wide letterbox preview strip (identify the screenshot at a glance),
- *   with share and keep (✕) affordances as small badges on it — no filename
- *   text anywhere;
- * - the user's own one-tap durations as a single scrolling row of chips;
- * - a compact action row: delete-now, "Custom…" (slider), date & time;
- * - any choice arms the timer and closes the card **immediately** — there is
- *   no confirmation/countdown state to sit through;
- * - the card sits bottom-centre, above the nav bar, out of the way of the
- *   content the user just captured, and enters with a soft rise animation.
+ * - **Centred** on screen (dead-centre is on the thumb arc, clear of the
+ *   status-bar shading on Android 15/16 and of the gesture-nav area; same
+ *   spot every time = spatial muscle memory). Tapping anywhere outside the
+ *   card keeps the screenshot and dismisses it.
+ * - **Two panes**: the screenshot gets its own side — a full-image (`Fit`)
+ *   preview column so the whole shot is visible while choosing — next to the
+ *   controls, so the card stays low and compact instead of tall.
+ * - **Controls**: the user's own one-tap durations as a fixed 2-column grid
+ *   (stable positions = muscle memory), a delete-now icon, a filled
+ *   "Custom…" (slider), a date & time icon, and a clearly distinct
+ *   **Keep ✓** button — keeping and closing are the same thing, so there is
+ *   one obvious affordance for it, not a cryptic ✕.
+ * - Any choice arms the timer and closes the card **immediately**; untouched
+ *   cards still close themselves after 45 s.
  */
 @Composable
 fun CaptureOverlay(
@@ -129,7 +134,7 @@ fun CaptureOverlay(
         onDismiss()
     }
 
-    // Soft entry: rise + fade, once, when the window appears.
+    // Soft entry: fade + gentle scale-up, once, when the window appears.
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     val entry by animateFloatAsState(
@@ -169,27 +174,27 @@ fun CaptureOverlay(
 
     Card(
         modifier = Modifier
-            .navigationBarsPadding()
             .padding(horizontal = 12.dp)
-            .widthIn(max = 340.dp)
+            .widthIn(max = 336.dp)
             .graphicsLayer {
                 alpha = entry
-                translationY = (1f - entry) * 48.dp.toPx()
+                val scale = 0.92f + 0.08f * entry
+                scaleX = scale
+                scaleY = scale
             },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            PreviewStrip(
+        Row(modifier = Modifier.padding(10.dp)) {
+            PreviewSide(
                 model = media?.uri ?: "",
                 contentDescription = displayName.ifBlank {
                     stringResource(R.string.overlay_new_screenshot)
                 },
-                onShare = { share(context, screenshotId) },
-                onKeep = onDismiss
+                onShare = { share(context, screenshotId) }
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.width(10.dp))
 
             AnimatedContent(
                 targetState = mode,
@@ -197,6 +202,7 @@ fun CaptureOverlay(
                     (fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 10 }) togetherWith
                         fadeOut(tween(80))
                 },
+                modifier = Modifier.weight(1f),
                 label = "mode"
             ) { current ->
                 when (current) {
@@ -205,7 +211,8 @@ fun CaptureOverlay(
                         onChoose = { arm(it) },
                         onCustom = { mode = OverlayMode.TIMER },
                         onDateTime = { mode = OverlayMode.DATETIME },
-                        onDeleteNow = { deleteNow() }
+                        onDeleteNow = { deleteNow() },
+                        onKeep = onDismiss
                     )
 
                     OverlayMode.TIMER -> TimerMode(
@@ -234,21 +241,22 @@ fun CaptureOverlay(
 }
 
 /**
- * Wide letterbox preview of the screenshot: full card width, ~96 dp tall —
- * enough to identify the shot at a glance without eating the screen. Share
- * and keep (✕) ride on it as translucent badges.
+ * The screenshot's own side of the card: a tall, narrow column showing the
+ * **whole** image (`Fit`), so users can identify the shot — including
+ * text-heavy ones — while choosing an option. Share rides on it as a small
+ * translucent badge; keeping the shot is the Keep button on the controls
+ * side (same action, one clear affordance).
  */
 @Composable
-private fun PreviewStrip(
+private fun PreviewSide(
     model: String,
     contentDescription: String,
-    onShare: () -> Unit,
-    onKeep: () -> Unit
+    onShare: () -> Unit
 ) {
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(96.dp)
+            .width(88.dp)
+            .height(212.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
@@ -259,40 +267,42 @@ private fun PreviewStrip(
                     .crossfade(150)
                     .build(),
                 contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()
             )
         }
-        Row(
+        Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            BadgeIconButton(
-                icon = Icons.Default.Share,
-                contentDescription = stringResource(R.string.screenshots_bulk_share),
-                onClick = onShare
-            )
-            BadgeIconButton(
-                icon = Icons.Default.Close,
-                contentDescription = stringResource(R.string.overlay_keep),
-                onClick = onKeep
-            )
-        }
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(36.dp)
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f))
+                    )
+                )
+        )
+        BadgeIconButton(
+            icon = Icons.Default.Share,
+            contentDescription = stringResource(R.string.screenshots_bulk_share),
+            onClick = onShare,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
-/** Small translucent circular badge button for the preview strip. */
+/** Small translucent circular badge button for the preview column. */
 @Composable
 private fun BadgeIconButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     contentDescription: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = modifier
+            .padding(bottom = 4.dp)
             .size(28.dp)
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.55f))
@@ -308,34 +318,43 @@ private fun BadgeIconButton(
     }
 }
 
-/** One-tap options: scrolling chip row + compact action row. */
+/** One-tap options: fixed 2-column grid + compact action row + Keep. */
 @Composable
 private fun OptionsMode(
     quickOptions: List<Long>,
     onChoose: (Long) -> Unit,
     onCustom: () -> Unit,
     onDateTime: () -> Unit,
-    onDeleteNow: () -> Unit
+    onDeleteNow: () -> Unit,
+    onKeep: () -> Unit
 ) {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            quickOptions.forEach { option ->
-                OutlinedButton(
-                    onClick = { onChoose(option) },
-                    contentPadding = PaddingValues(horizontal = 14.dp)
-                ) { Text(DeletionDuration.label(option)) }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        // Fixed grid: every option is always in the same spot — spatial
+        // muscle memory. (Odd counts keep the row width stable.)
+        quickOptions.chunked(2).forEach { rowOptions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                rowOptions.forEach { option ->
+                    OutlinedButton(
+                        onClick = { onChoose(option) },
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(DeletionDuration.label(option), maxLines = 1)
+                    }
+                }
+                if (rowOptions.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        Spacer(Modifier.height(10.dp))
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxWidth()
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             IconButton(onClick = onDeleteNow) {
                 Icon(
@@ -344,14 +363,14 @@ private fun OptionsMode(
                     tint = MaterialTheme.colorScheme.error
                 )
             }
-            FilledTonalButton(
+            Button(
                 onClick = onCustom,
-                contentPadding = PaddingValues(horizontal = 12.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.duration_custom))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.duration_custom), maxLines = 1)
             }
             IconButton(onClick = onDateTime) {
                 Icon(
@@ -359,6 +378,22 @@ private fun OptionsMode(
                     contentDescription = stringResource(R.string.duration_pick_datetime)
                 )
             }
+        }
+
+        // Keep = close without scheduling. Deliberately its own button, in the
+        // secondary (tan) family — visually distinct from the amber "Custom…"
+        // filled button and the red delete icon.
+        FilledTonalButton(
+            onClick = onKeep,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        ) {
+            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(R.string.overlay_keep))
         }
     }
 }
@@ -464,27 +499,9 @@ private fun DateTimeMode(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                stringResource(R.string.duration_days),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Text(
-                stringResource(R.string.duration_hours),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Text(
-                stringResource(R.string.duration_minutes),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+            WheelLabel(stringResource(R.string.duration_days), Modifier.weight(1f))
+            WheelLabel(stringResource(R.string.duration_hours), Modifier.weight(1f))
+            WheelLabel(stringResource(R.string.duration_minutes), Modifier.weight(1f))
         }
         Spacer(Modifier.height(4.dp))
         Text(
@@ -509,6 +526,17 @@ private fun DateTimeMode(
             }
         }
     }
+}
+
+@Composable
+private fun WheelLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+    )
 }
 
 private fun share(context: android.content.Context, screenshotId: Long) {

@@ -111,7 +111,6 @@
     <string name="overlay_delete_in_fmt">Delete in %1$s</string>
     <string name="overlay_delete_now">Delete now</string>
     <string name="overlay_keep">Keep</string>
-    <string name="overlay_close">Close</string>
 
     <string name="toast_deleted">Screenshot deleted</string>
     <string name="toast_delete_failed">Could not delete the screenshot</string>

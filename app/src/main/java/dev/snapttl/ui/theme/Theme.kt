@@ -12,16 +12,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Ember palette: warm charcoal surfaces with a soft ember-orange accent.
+ * Ember palette: warm charcoal surfaces with an ember-orange accent.
  *
  * The accent deliberately avoids the old neon #FF4500 — on today's mostly-dark
- * phones a tone-80 ember (#FFB86B) reads as clearly "orange" without searing
- * the eye, while deep amber-brown containers keep filled elements rich rather
+ * phones a rich ember (#FF8A3D) reads as clearly "orange" without searing the
+ * eye, while deep amber-brown containers keep filled elements rich rather
  * than washed out. A muted teal tertiary gives secondary actions separation.
+ * (Round-5 tuning: #FFB86B read as faded — primaries were pushed back toward
+ * a truer orange; light primary is a deeper burnt #C24900.)
  */
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFFA13E00),            // burnt orange
+    primary = Color(0xFFC24900),            // burnt orange, un-faded
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFDBC8),
     onPrimaryContainer = Color(0xFF351000),
@@ -48,13 +50,13 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFFFB86B),            // soft ember
+    primary = Color(0xFFFF8A3D),            // ember — saturated, not neon
     onPrimary = Color(0xFF4A2100),
-    primaryContainer = Color(0xFF6A3B0D),   // deep amber-brown
+    primaryContainer = Color(0xFF8A4A10),   // amber-brown, richer
     onPrimaryContainer = Color(0xFFFFDCC0),
     secondary = Color(0xFFD7BFA2),
     onSecondary = Color(0xFF3A2E1E),
-    secondaryContainer = Color(0xFF52432C),
+    secondaryContainer = Color(0xFF5A462C),
     onSecondaryContainer = Color(0xFFF4E0C7),
     tertiary = Color(0xFF9CD3C6),           // muted teal accent
     onTertiary = Color(0xFF08372F),

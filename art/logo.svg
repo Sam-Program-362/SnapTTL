@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!--
+    SnapTTL — "the dissolving screenshot"
+    Canonical logo source. A photo frame whose bottom-right corner breaks into
+    shrinking dots drifting away: screenshots that fade themselves out.
+    Not a clock, not the name — the mark users will map to SnapTTL.
+    Colours track the app theme's ember primary (#FF8A3D family).
+  -->
+  <defs>
+    <linearGradient id="ember" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF9A3D"/>
+      <stop offset="1" stop-color="#E05700"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#ember)"/>
+  <g transform="translate(128 128) scale(2.3704) translate(-54 -54)"
+     fill="none" stroke="#FFF8F4" stroke-width="5" stroke-linecap="round">
+    <!-- Frame, open at the bottom-right corner. -->
+    <path d="M40,30 L68,30 A10,10 0 0 1 78,40 L78,59"/>
+    <path d="M59,78 L40,78 A10,10 0 0 1 30,68 L30,40 A10,10 0 0 1 40,30"/>
+    <!-- Sun + mountain: the universal "image" tell. -->
+    <circle cx="46" cy="42" r="3.5" fill="#FFF8F4" stroke="none"/>
+    <path d="M36,64 L47,49 L54,58 L59,52 L68,64 Z" fill="#FFF8F4" stroke="none"/>
+    <!-- The corner, dissolving: three dots, smaller and further out. -->
+    <circle cx="74.5" cy="65.5" r="3.4" fill="#FFF8F4" stroke="none"/>
+    <circle cx="79" cy="72" r="2.4" fill="#FFF8F4" stroke="none"/>
+    <circle cx="82.5" cy="78.5" r="1.6" fill="#FFF8F4" stroke="none"/>
+  </g>
+</svg>
