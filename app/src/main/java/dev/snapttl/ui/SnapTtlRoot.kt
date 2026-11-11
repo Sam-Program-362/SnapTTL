@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -31,10 +32,15 @@ import dev.snapttl.ui.search.SearchScreen
 import dev.snapttl.ui.settings.SettingsScreen
 
 @Composable
-fun SnapTtlRoot(services: Services) {
+fun SnapTtlRoot(services: Services, openSettingsFirst: Boolean = false) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    // Deep-link landing (folder-access notification): straight to Settings.
+    LaunchedEffect(Unit) {
+        if (openSettingsFirst) navController.navigate(Routes.SETTINGS) { launchSingleTop = true }
+    }
 
     Scaffold(
         bottomBar = {

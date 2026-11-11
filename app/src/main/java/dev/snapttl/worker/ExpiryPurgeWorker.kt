@@ -63,6 +63,9 @@ class ExpiryPurgeWorker(
                         applicationContext,
                         applicationContext.getString(R.string.toast_delete_failed)
                     )
+                    // Silent give-up reads as "the button did nothing" — point the
+                    // user at the Screenshots-folder grant that fixes it.
+                    dev.snapttl.service.FolderAccessNotifier.notifyIfMissing(applicationContext)
                     Result.success()
                 } else {
                     Result.retry()

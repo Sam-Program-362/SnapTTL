@@ -4,12 +4,12 @@
     Canonical logo source. A photo frame whose bottom-right corner breaks into
     shrinking dots drifting away: screenshots that fade themselves out.
     Not a clock, not the name — the mark users will map to SnapTTL.
-    Colours track the app theme's ember primary (#FF8A3D family).
+    Colours track the app theme's light-cyan primary (#7BD5ED family).
   -->
   <defs>
     <linearGradient id="ember" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FF9A3D"/>
-      <stop offset="1" stop-color="#E05700"/>
+      <stop offset="0" stop-color="#5BC8F2"/>
+      <stop offset="1" stop-color="#0B7EC2"/>
     </linearGradient>
   </defs>
   <rect width="256" height="256" rx="56" fill="url(#ember)"/>

@@ -212,6 +212,50 @@ the small constant deltas, and the run demonstrably built from `f72431c`).
 Release notes now carry an in-place-update annotation. The in-place update
 kept **versionCode 5 / versionName 0.1.3**.
 
+## User feedback round 7 (2026-10-31, deletion system + cyan rebrand)
+User report on v0.1.3-updated: scheduled screenshots were **not deleted** —
+"every button on the pop-up window is clickable but do nothing"; the popup
+showed only 4 quick options even with more configured; popup slightly
+bigger; popup background pure dark gray (was warm/orangish); whole theme
+orange → light blue/light cyan. Root-cause + fixes:
+
+1. **Deletion system.** The pipeline itself schedules and purges (device
+   tests prove it), but on a real device the screenshots are **system-owned
+   media**: without the SAF Screenshots-folder grant, the MediaStore delete
+   throws SecurityException which is swallowed → `FAILED`, and *every*
+   failure path was silent — the overlay armed with no toast, delete-now
+   returned false with no feedback, the worker retried silently. The
+   emulator device-tests never caught this because test-inserted images are
+   app-owned. Fixes:
+   - `CaptureOverlay.arm()/armAt()` now confirm with a toast
+     (`overlay_delete_in_fmt` / new `overlay_delete_at`).
+   - New `service/FolderAccessNotifier`: heads-up notification (PERMISSION
+     channel, throttled 1/h via `folderNudgeLastMs` pref) when arming or
+     failing **without** the folder grant; deep-links via
+     `MainActivity.EXTRA_OPEN_FOLDER_PICKER` → `SnapTtlRoot(openSettingsFirst)`
+     → Settings. Fired from arm/armAt, `CaptureActions.deleteNow` failure,
+     and the worker's final retry give-up.
+   - `CaptureActions.deleteNow` now toasts on success (`toast_deleted`) and
+     failure (`toast_delete_failed`) for every caller.
+   - The fix to make deletion actually work on the device: **connect the
+     Screenshots folder in Settings** (SAF grant) — the notification now
+     walks the user there.
+2. **Chips > 4**: quick options render 4 per page (2×2 grid, stable
+   coordinates) in a `HorizontalPager` — swipe for more pages, dot
+   indicators when > 1 page (max 6 chips → 2 pages).
+3. **Size**: card `widthIn(max = 560)`, horizontal padding 10, inner padding
+   14, preview column 108×240 dp.
+4. **Popup background**: theme surfaces are now **pure dark grays**
+   (`#141414`/`#1C1C1C`/`#2A2B2D`) — no warm tint; `colors.xml`
+   (windowBackground) updated to match.
+5. **Theme: orange → light cyan ("tide")**. Dark primary `#7BD5ED` (light
+   cyan), primaryContainer `#004B5C`, slate secondary, lavender tertiary;
+   light primary `#00687D` on cool white. Logo gradient recolored
+   `#5BC8F2 → #0B7EC2` (adaptive bg + `art/logo.svg`; glyph unchanged).
+   Strings 118 → 121 (`overlay_delete_at`, `notification_folder_title`,
+   `notification_folder_text`). Version **0.1.4 / versionCode 6** — new
+   release (round-7 is a rebrand + system fix, not a patch of v0.1.3).
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).

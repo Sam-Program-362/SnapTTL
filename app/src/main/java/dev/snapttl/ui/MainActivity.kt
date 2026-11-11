@@ -27,14 +27,22 @@ class MainActivity : ComponentActivity() {
         // Reconcile the expiry queue on app open (boot covers reboots; this covers
         // process death without a reboot).
         app.reconcileQueue()
+        // The folder-access notification deep-links here; land on Settings so the
+        // user is one tap away from connecting the Screenshots folder.
+        val openSettings = intent?.getBooleanExtra(EXTRA_OPEN_FOLDER_PICKER, false) == true
         setContent {
             SnapTtlTheme {
                 CompositionLocalProvider(
                     LocalSnapTtlFactory provides ViewModelFactory(app.services)
                 ) {
-                    SnapTtlRoot(services = app.services)
+                    SnapTtlRoot(services = app.services, openSettingsFirst = openSettings)
                 }
             }
         }
+    }
+
+    companion object {
+        /** Deep-link extra: open Settings (Screenshots folder) on launch. */
+        const val EXTRA_OPEN_FOLDER_PICKER = "dev.snapttl.extra.OPEN_FOLDER_PICKER"
     }
 }
