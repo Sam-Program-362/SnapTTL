@@ -240,6 +240,14 @@ orange → light blue/light cyan. Root-cause + fixes:
    - The fix to make deletion actually work on the device: **connect the
      Screenshots folder in Settings** (SAF grant) — the notification now
      walks the user there.
+
+   Shipped: branch `arena/ca6d9222-snapttl`, PR **#17** merged (main @
+   `7488258`); Verify `43061899596`/`43064650110` ✓ and Device tests
+   `43061899563`/`43064650126` ✓ (Android 11/14/15, both events); one lint
+   fix mid-round (`MissingPermission` on `notify()` — same
+   `POST_NOTIFICATIONS` guard pattern as `CaptureNotificationFallback`).
+   **Signed release v0.1.4** published (release run `43066323571` ✓,
+   `app-release.apk` 89,800,758 bytes, versionCode 6).
 2. **Chips > 4**: quick options render 4 per page (2×2 grid, stable
    coordinates) in a `HorizontalPager` — swipe for more pages, dot
    indicators when > 1 page (max 6 chips → 2 pages).
@@ -314,6 +322,12 @@ orange → light blue/light cyan. Root-cause + fixes:
 ## Verification status
 - Local: no JDK/Gradle/Android SDK in the sandbox. Python mirror: **17 tests pass**
   (duration model + chip-list rules + snap ladder).
+- **Round 7 (deletion-system fix + chip pager + cyan rebrand) green on
+  `main`** @ `7488258` (PR #17): Verify + Device tests ✓ on both events.
+- **Signed release v0.1.4 published** —
+  https://github.com/Sam-Program-362/SnapTTL/releases/tag/v0.1.4
+  (`app-release.apk`, 89,800,758 bytes, versionCode 6; release run
+  `43066323571` ✓).
 - **Round 6 (device-proportional card + selection-only dismissal) green on
   `main`** @ `f72431c` (PR #15): Verify + Device tests ✓ on both events;
   **release v0.1.3 updated in place** (tag re-pointed, APK clobbered by run
@@ -357,12 +371,15 @@ orange → light blue/light cyan. Root-cause + fixes:
       (round 4), PR #13 (round 5) merged; main fully green.
 - [x] Signed releases v0.1.0–v0.1.3 tagged/published with the signed APK
       attached (v0.1.3 updated in place 2026-10-31 with the round-6 fixes).
-- [ ] User re-tests the **updated signed v0.1.3 (versionCode 5)** APK on the
-      Android 16 device: device-width centred popup, full-image preview side,
-      fixed-grid one-tap chips, Keep button (outside taps must NOT dismiss),
-      slider custom timer, wheel date/time, immediate auto-close on
-      selection, 45 s idle close, un-faded ember theme, new logo, and the
-      notification fallback when the overlay permission is off.
+- [ ] User re-tests the **signed v0.1.4 (versionCode 6)** APK on the Android
+      16 device. CRITICAL FIRST STEP: **Settings → Screenshots folder →
+      Choose folder** (grant Pictures/Screenshots). Without it, Android will
+      not let any app delete system-owned screenshots — v0.1.4 now says so
+      via a heads-up notification instead of failing silently. Then verify:
+      toasts on every popup action, scheduled deletion actually deletes at
+      the chosen time, delete-now works, swipeable chip pages when >4 quick
+      options, bigger popup on pure-gray background, cyan theme, cyan logo,
+      and the notification fallback when the overlay permission is off.
 - [ ] If the ad-refill idea is revived, see "Deferred monetization option" above.
 
 ## Late-stage fixes found by CI
