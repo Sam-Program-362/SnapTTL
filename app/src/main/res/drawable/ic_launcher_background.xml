@@ -4,7 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Ember gradient, matching the app theme's primary (#FF8A3D family). -->
+    <!-- Light-cyan gradient, matching the app theme's primary (#7BD5ED family). -->
     <path android:pathData="M0,0 H108 V108 H0 Z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -13,8 +13,8 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#FF9A3D" />
-                <item android:offset="1.0" android:color="#E05700" />
+                <item android:offset="0.0" android:color="#5BC8F2" />
+                <item android:offset="1.0" android:color="#0B7EC2" />
             </gradient>
         </aapt:attr>
     </path>

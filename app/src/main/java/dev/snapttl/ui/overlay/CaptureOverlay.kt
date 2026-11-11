@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,6 +72,8 @@ import dev.snapttl.data.repository.ScreenshotMedia
 import dev.snapttl.domain.DeletionDuration
 import dev.snapttl.domain.TimeUtils
 import dev.snapttl.service.CaptureActions
+import dev.snapttl.service.FolderAccessNotifier
+import dev.snapttl.service.ToastHelper
 import dev.snapttl.ui.common.DurationSlider
 import dev.snapttl.ui.common.WheelColumn
 import kotlinx.coroutines.delay
@@ -77,6 +81,12 @@ import kotlinx.coroutines.launch
 
 /** Overlay interaction mode: one-tap options, slider timer, or date/time. */
 private enum class OverlayMode { OPTIONS, TIMER, DATETIME }
+
+/** Quick options shown per swipe page (2x2 grid → stable chip coordinates). */
+private const val CHIPS_PER_PAGE = 4
+
+/** Height of the chip pager: two 40 dp rows + 6 dp spacing. */
+private val CHIP_GRID_HEIGHT = 86.dp
 
 /**
  * Floating delete-timer card shown over other apps — the heart of SnapTTL's
@@ -90,10 +100,14 @@ private enum class OverlayMode { OPTIONS, TIMER, DATETIME }
  * - **Two panes**: the screenshot gets its own side — a full-image (`Fit`)
  *   preview column so the whole shot is visible while choosing — next to the
  *   controls, so the card stays low and compact instead of tall. The card is
- *   sized **relative to the device** (nearly full width, capped at 520 dp)
+ *   sized **relative to the device** (nearly full width, capped at 560 dp)
  *   so buttons breathe on every screen size instead of being squeezed.
- * - **Controls**: the user's own one-tap durations as a fixed 2-column grid
- *   (stable positions = muscle memory), a delete-now icon, a filled
+ * - **Controls**: quick options show four at a time as a 2x2 grid; swipe
+ *   sideways (with dot indicators) for more when the user keeps more than
+ *   four. Every arming action confirms with a toast, and if the
+ *   Screenshots-folder grant is missing a heads-up notification explains
+ *   how to enable silent deletion.
+ * - **Actions**: a delete-now icon, a filled
  *   "Custom…" (slider), a date & time icon, and a clearly distinct
  *   **Keep ✓** button — keeping and closing are the same thing, so there is
  *   one obvious affordance for it, not a cryptic ✕.
@@ -153,6 +167,18 @@ fun CaptureOverlay(
                 durationSeconds = durationSeconds
             )
         }
+        // Immediate confirmation — an armed timer must never feel like a no-op.
+        ToastHelper.show(
+            context,
+            context.getString(
+                R.string.overlay_delete_in_fmt,
+                TimeUtils.formatCountdown(durationSeconds * 1_000L)
+            )
+        )
+        // Deletion needs the Screenshots-folder grant on Android 11+; if it is
+        // missing, say so now (heads-up notification) instead of failing silently
+        // at purge time.
+        FolderAccessNotifier.notifyIfMissing(context)
         onDismiss()
     }
 
@@ -163,6 +189,11 @@ fun CaptureOverlay(
                 targetEpochMs = targetEpochMs
             )
         }
+        ToastHelper.show(
+            context,
+            context.getString(R.string.overlay_delete_at, TimeUtils.formatDateTime(targetEpochMs))
+        )
+        FolderAccessNotifier.notifyIfMissing(context)
         onDismiss()
     }
 
@@ -177,8 +208,8 @@ fun CaptureOverlay(
 
     Card(
         modifier = Modifier
-            .padding(horizontal = 12.dp)
-            .widthIn(max = 520.dp)
+            .padding(horizontal = 10.dp)
+            .widthIn(max = 560.dp)
             .fillMaxWidth()
             .graphicsLayer {
                 alpha = entry
@@ -190,7 +221,7 @@ fun CaptureOverlay(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp)) {
+        Row(modifier = Modifier.padding(14.dp)) {
             PreviewSide(
                 model = media?.uri ?: "",
                 contentDescription = displayName.ifBlank {
@@ -259,8 +290,8 @@ private fun PreviewSide(
 ) {
     Box(
         modifier = Modifier
-            .width(96.dp)
-            .height(212.dp)
+            .width(108.dp)
+            .height(240.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
@@ -322,7 +353,7 @@ private fun BadgeIconButton(
     }
 }
 
-/** One-tap options: fixed 2-column grid + compact action row + Keep. */
+/** One-tap options: swipeable 2x2 grid pages + compact action row + Keep. */
 @Composable
 private fun OptionsMode(
     quickOptions: List<Long>,
@@ -332,27 +363,46 @@ private fun OptionsMode(
     onDeleteNow: () -> Unit,
     onKeep: () -> Unit
 ) {
+    // Four options per page (a 2x2 grid keeps every chip at a stable spot —
+    // spatial muscle memory); swipe left/right for more pages when the user
+    // keeps more than four quick options.
+    val pages = remember(quickOptions) { quickOptions.chunked(CHIPS_PER_PAGE) }
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Fixed grid: every option is always in the same spot — spatial
-        // muscle memory. (Odd counts keep the row width stable.)
-        quickOptions.chunked(2).forEach { rowOptions ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CHIP_GRID_HEIGHT),
+            verticalAlignment = Alignment.Top
+        ) { page ->
+            ChipGrid(options = pages.getOrElse(page) { emptyList() }, onChoose = onChoose)
+        }
+        if (pages.size > 1) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.Center
             ) {
-                rowOptions.forEach { option ->
-                    OutlinedButton(
-                        onClick = { onChoose(option) },
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(DeletionDuration.label(option), maxLines = 1)
-                    }
+                repeat(pages.size) { index ->
+                    val selected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                }
+                            )
+                    )
                 }
-                if (rowOptions.size == 1) Spacer(Modifier.weight(1f))
             }
         }
 
@@ -385,8 +435,8 @@ private fun OptionsMode(
         }
 
         // Keep = close without scheduling. Deliberately its own button, in the
-        // secondary (tan) family — visually distinct from the amber "Custom…"
-        // filled button and the red delete icon.
+        // secondary (slate) family — visually distinct from the cyan filled
+        // "Custom…" button and the red delete icon.
         FilledTonalButton(
             onClick = onKeep,
             modifier = Modifier.fillMaxWidth(),
@@ -398,6 +448,33 @@ private fun OptionsMode(
             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
             Text(stringResource(R.string.overlay_keep))
+        }
+    }
+}
+
+/** A page of quick options: a 2-column grid with stable coordinates. */
+@Composable
+private fun ChipGrid(
+    options: List<Long>,
+    onChoose: (Long) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        options.chunked(2).forEach { rowOptions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                rowOptions.forEach { option ->
+                    OutlinedButton(
+                        onClick = { onChoose(option) },
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(DeletionDuration.label(option), maxLines = 1)
+                    }
+                }
+                if (rowOptions.size == 1) Spacer(Modifier.weight(1f))
+            }
         }
     }
 }

@@ -51,6 +51,11 @@ class PrefsManager(context: Context) {
         get() = app.getBoolean(KEY_OCR_INDEX_ENABLED, true)
         set(value) = app.edit().putBoolean(KEY_OCR_INDEX_ENABLED, value).apply()
 
+    /** Throttle for the folder-access heads-up notification (epoch ms). */
+    var folderNudgeLastMs: Long
+        get() = app.getLong(KEY_FOLDER_NUDGE_LAST_MS, 0L)
+        set(value) = app.edit().putLong(KEY_FOLDER_NUDGE_LAST_MS, value).apply()
+
     // --- Retained counters (survive reinstall via backup rules) ---
 
     var totalScreenshotsDeleted: Long
@@ -71,6 +76,7 @@ class PrefsManager(context: Context) {
         const val KEY_SCREENSHOT_TREE_URI = "screenshot_folder_tree_uri"
         const val KEY_CUSTOM_DURATIONS = "custom_durations_seconds"
         const val KEY_OCR_INDEX_ENABLED = "ocr_index_enabled"
+        const val KEY_FOLDER_NUDGE_LAST_MS = "folder_nudge_last_ms"
 
         const val RETAIN_DELETED = "total_screenshots_deleted"
         const val RETAIN_MEMORY = "total_memory_saved"
