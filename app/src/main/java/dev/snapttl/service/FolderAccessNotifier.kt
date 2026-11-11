@@ -59,8 +59,19 @@ object FolderAccessNotifier {
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .build()
 
-        runCatching {
-            NotificationManagerCompat.from(app).notify(NOTIFICATION_ID, notification)
+        // POST_NOTIFICATIONS may be revoked on 13+; never let the nudge itself crash.
+        val canNotify = android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU ||
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                app, dev.snapttl.ui.common.Permissions.NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (canNotify) {
+            runCatching {
+                NotificationManagerCompat.from(app).notify(NOTIFICATION_ID, notification)
+            }
+        } else {
+            // No notification channel to the user at all — the toast at least
+            // says why deletions are failing.
+            ToastHelper.show(app, app.getString(R.string.toast_delete_failed))
         }
     }
 }
