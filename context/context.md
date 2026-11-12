@@ -291,6 +291,14 @@ Fixes (PR #19):
   standing preference the **v0.1.4 release is updated in place** (tag
   re-pointed to the fix commit, APK clobbered, release notes annotated).
 
+Close-out: PR #19 merged (main `3e65099`), branch CI green (Verify
+`43201387127`, Device `43201387386`; PR events `43202286079`/`43202286107`),
+main green after merge (Verify `43203131740`, Device `43203131797`, Build APK
+`43203131747`, Export schemas `43203132137`). Release run `43203153122`
+rebuilt from the new tag and clobbered `app-release.apk` (asset verified: the
+run's build artifact differs from build 6's by ~2 KB — the code delta — while
+the final APK landed on the same total byte count via zip alignment padding).
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).
