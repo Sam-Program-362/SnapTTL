@@ -264,6 +264,33 @@ orange → light blue/light cyan. Root-cause + fixes:
    `notification_folder_text`). Version **0.1.4 / versionCode 6** — new
    release (round-7 is a rebrand + system fix, not a patch of v0.1.3).
 
+## User feedback round 8 (2026-11-11, SAF deletion deleted the wrong file)
+User report on v0.1.4: with **all permissions granted including the folder
+grant**, both delete-now paths toasted "Screenshot deleted" yet the file
+remained on disk (checked in the file manager). Root cause found in
+`ScreenshotRepository.deleteViaSaf`: it queried the SAF children cursor with
+a SQL `selection` on `DISPLAY_NAME` — but **child-document queries ignore
+selections** on Android's documents provider. The query returned *all*
+children, `moveToFirst()` matched the **first file in the folder**, and that
+wrong document was deleted while the app reported success. (The emulators
+never caught it: their test images are app-owned, so the MediaStore fallback
+path — which works — was exercised instead; and the device tests never set a
+folder grant, so the SAF path never ran at all.)
+
+Fixes (PR #19):
+- `deleteViaSaf` rewritten with two strategies: (1) **direct document id**
+  built from the MediaStore file path (`safDocumentIdFor(treeDocId, path)`
+  pure helper, unit-tested — O(1), works in any subfolder of the grant);
+  (2) **bounded BFS walk** of the granted tree matching by display name and,
+  when known, exact size — all matching in code, never in the query.
+- **Honest verification**: after a successful SAF delete, the repo polls
+  MediaStore (≤1.6 s) and only reports `DELETED` once the row is actually
+  gone; otherwise `FAILED` (toast + folder-access nudge). A lying toast is
+  worse than a failure toast.
+- Version: **versionName stays 0.1.4, versionCode 6 → 7** — per the user's
+  standing preference the **v0.1.4 release is updated in place** (tag
+  re-pointed to the fix commit, APK clobbered, release notes annotated).
+
 ## Session log (2026-10-30, arena/85a2efc2-snapttl)
 
 1. Re-reviewed everything from PR #1 (full findings: `context/review-2026-10-30.md`).
